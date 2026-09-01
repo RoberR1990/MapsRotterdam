@@ -96,8 +96,16 @@ blijft.
 
 - **Voorlopige oplossing: `src/collect_standalone.sh`.** Doet hetzelfde werk
   zonder Actions -- databranch als worktree, meten, committen, pushen -- vanaf
-  elke machine die de repo kan pushen. Wordt nu elk uur aangeroepen door een
-  Claude-routine.
+  elke machine die de repo kan pushen. Wordt aangeroepen door twee
+  Claude-routines, met een cron die alleen op de uren vuurt die een tijdvak
+  raken (46 van de 168 uren in een week; de rest was pure verspilling):
+
+      werkdagen  48 5,6,8,9,10,11,12,14,15,18,19,20 * * 2-4   (UTC)
+      weekend    48 10,11,12,13,14 * * 0,6                    (UTC)
+
+  ⚠️ Die uren zijn UTC en gaan uit van zomertijd. Na de overgang naar wintertijd
+  (25 oktober) schuiven ze een uur ten opzichte van de tijdvakken, die in
+  `Europe/Amsterdam` staan. Loopt het verzamelen dan nog, trek er een uur af.
 
 - **Beter: een crontab-regel.** Elk uur via een routine is duur en levert maar
   drie metingen per week in de ochtendspits. Eén regel op een machine die toch
