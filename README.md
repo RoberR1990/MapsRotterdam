@@ -89,6 +89,45 @@ blijft.
   Voor een weekprofiel maakt dat niets uit. Wil je het strakker, draai dan dezelfde
   `sample_ndw.py collect` in een gewone crontab op een machine die altijd aanstaat.
 
+## Verstoringen: werkzaamheden en afsluitingen
+
+NDW publiceert ook de geplande wegwerkzaamheden, evenementen en afsluitingen
+(DATEX II, gratis). Voor de regio Rotterdam zitten daar ~2.300 records in, samen
+1.463 unieke maatregelen, met locatie, geldigheidsvensters, oorzaak en de
+vertraging die de wegbeheerder zelf verwacht. Drie toepassingen, alle drie
+ingebouwd:
+
+1. **Kalibratie schoonhouden.** 1.596 van de 5.969 meetlocaties liggen binnen
+   250 m van een verstoring. Zonder filter bak je een straat die drie weken
+   openligt in als structurele congestie. `disruptions.py blackouts` maakt per
+   meetlocatie de vensters; de sampler zet er een kolom `verstoord` bij en
+   `aggregate` slaat die rijen over. In een losse meting ging het om 65 van de
+   447 metingen.
+2. **Scenariomatrix "zoals het nu is".** `build_scenario.py` bouwt een
+   OSRM-dataset waarin wegvakken vlak bij een afsluiting onbegaanbaar duur zijn,
+   via een eigen `process_segment`-handler. Op 1 september (150 afsluitingen)
+   verschilt 35% van de zoneparen noemenswaardig van het normale beeld, en 128
+   paren hebben geen redelijk alternatief.
+3. **Vooruitkijken.** Dezelfde aanroep met een datum in de toekomst; de
+   planningsfeed loopt maanden vooruit. Voor 15 oktober: 80 afsluitingen, 28%
+   van de paren anders.
+
+```bash
+python3 src/ndw_events.py                    # feeds ophalen en plat slaan
+python3 src/disruptions.py blackouts         # -> out/ndw_site_blackouts.json
+python3 src/build_scenario.py 2026-10-15T08:15 werkdag_ochtendspits
+```
+
+Twee dingen om te weten. **De helft van de records landelijk heeft geen
+coordinaten** (30.520 van 59.208) en gebruikt alleen een RIS-index- of
+AlertC-locatiecode; het Rotterdamse aantal is dus een ondergrens. Op te lossen
+met de VILD-locatietabel, ook gratis. En **de afname over de tijd in de feed is
+geen seizoenspatroon** maar een planningshorizon: verder weg is nog niet
+geregistreerd.
+
+De brugopeningenfeed is voor Rotterdam onbruikbaar -- die is Amsterdam, Alkmaar,
+Haarlem en Zaanstad, met precies een punt in de Rotterdam-bbox.
+
 ## Pijplijn
 
 ```
@@ -100,8 +139,11 @@ src/timeslots.py       tijdvakken + congestiefactoren   <- hier kalibreer je
 src/build_slots.py     per tijdvak een eigen OSRM-dataset + router
 src/build_matrices.py  alle matrices -> out/matrix_all_<set>.csv + webexport
 src/ndw.py             NDW-meetlocaties en -snelheden
+src/ndw_events.py      NDW-situatiefeeds (werkzaamheden, afsluitingen, bruggen)
+src/disruptions.py     blackouts voor de sampler / punten voor een scenario
+src/build_scenario.py  scenariomatrix voor een moment, met afsluitingen
 src/sample_ndw.py      collect (CI) / aggregate -> gemeten factoren
-.github/workflows/     de sampler, elke 15 min op GitHub Actions
+.github/workflows/     sampler (elke 15 min) + verstoringen (dagelijks)
 ```
 
 ## Ontwerpkeuze: profiel per tijdvak, geen vermenigvuldiging

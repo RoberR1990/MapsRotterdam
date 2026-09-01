@@ -11,6 +11,7 @@ Na 2-3 weken heb je per meetlocatie een echt profiel over de week heen.
 """
 import csv
 import gzip
+import json
 import os
 import statistics
 import sys
@@ -27,6 +28,9 @@ from ndw import parse_speeds, OUT  # noqa: E402
 
 # CI zet dit naar de losse databranch-worktree; lokaal blijft het out/ndw_history
 HIST = Path(os.environ.get("NDW_HISTORY_DIR") or OUT / "ndw_history")
+# vensters waarin er vlakbij een meetlocatie gewerkt wordt; wordt dagelijks
+# ververst door src/disruptions.py blackouts
+BLACKOUTS = Path(os.environ.get("NDW_BLACKOUTS") or OUT / "ndw_site_blackouts.json")
 FEED = "https://opendata.ndw.nu/trafficspeed.xml.gz"
 # Tijdvakken zijn Rotterdamse kloktijd. Expliciet vastleggen, want een
 # CI-runner staat op UTC en zou alles een of twee uur verschuiven.
@@ -58,8 +62,32 @@ def sites_in_region():
     Dat bestand staat in git, zodat een CI-run niet elke keer de 11 MB grote
     locatietabel hoeft te downloaden. Ververs het af en toe met src/ndw.py.
     """
-    import json
+
     return {r["id"]: r for r in json.loads((OUT / "ndw_sites.json").read_text())}
+
+
+def verstoorde_locaties(moment):
+    """Meetlocaties waar op dit moment vlakbij gewerkt wordt.
+
+    Die metingen zijn echt, maar ze zeggen iets over een wegopbreking en niet
+    over het normale weekpatroon. We gooien ze niet weg -- we markeren ze, zodat
+    aggregate ze overslaat en je later alsnog anders kunt kiezen.
+    """
+    if not BLACKOUTS.exists():
+        return set()
+    black = json.loads(BLACKOUTS.read_text())
+    hit = set()
+    for sid, vensters in black.items():
+        for a, b in vensters:
+            try:
+                s0 = datetime.fromisoformat(a.replace("Z", "+00:00"))
+                s1 = datetime.fromisoformat(b.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if s0 <= moment <= s1:
+                hit.add(sid)
+                break
+    return hit
 
 
 def collect():
@@ -78,29 +106,36 @@ def collect():
     region = sites_in_region()
     now = now_local
 
+    verstoord = verstoorde_locaties(now)
     path = HIST / f"{now:%Y-%m-%d}.csv.gz"
     new = not path.exists()
     with gzip.open(path, "at", newline="") as f:
         w = csv.writer(f)
         if new:
-            w.writerow(["ts", "site_id", "speed_kmh", "n"])
-        k = 0
+            w.writerow(["ts", "site_id", "speed_kmh", "n", "verstoord"])
+        k = v = 0
         for sid, m in speeds.items():
             if sid in region:
+                vs = int(sid in verstoord)
                 w.writerow([now.isoformat(timespec="minutes"), sid,
-                            m["speed_kmh"], m["n"]])
+                            m["speed_kmh"], m["n"], vs])
                 k += 1
-    print(f"{now:%Y-%m-%d %H:%M} slot={slot_of(now)} -> {k} metingen bijgeschreven")
+                v += vs
+    print(f"{now:%Y-%m-%d %H:%M} slot={slot_of(now)} -> {k} metingen bijgeschreven"
+          f" ({v} bij werkzaamheden, worden bij aggregate overgeslagen)")
 
 
 def aggregate():
     """Vrije-doorstroomreferentie per meetlocatie = p85 in de nachtelijke uren."""
     per_site = defaultdict(lambda: defaultdict(list))
-    rows = 0
+    rows = overgeslagen = 0
     for path in sorted(HIST.glob("*.csv.gz")):
         with gzip.open(path, "rt", newline="") as f:
             for r in csv.DictReader(f):
                 slot = slot_of(datetime.fromisoformat(r["ts"]).astimezone(TZ))
+                if r.get("verstoord") == "1":
+                    overgeslagen += 1
+                    continue
                 if slot and int(r["n"]) > 0:
                     per_site[r["site_id"]][slot].append(float(r["speed_kmh"]))
                     rows += 1
@@ -125,14 +160,15 @@ def aggregate():
             per_class[(klasse, slot)].append(f)
 
     if not out:
-        print(f"Nog te weinig historie ({rows} metingen). Laat de collect-cron "
-              f"een paar weken draaien.")
+        print(f"Nog te weinig historie ({rows} metingen, {overgeslagen} overgeslagen "
+              f"wegens werkzaamheden). Laat de collect-cron een paar weken draaien.")
         return
     with open(OUT / "ndw_factors.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
         w.writerows(out)
-    print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren")
+    print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren "
+          f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij)")
     for (klasse, slot), vals in sorted(per_class.items()):
         print(f"  {klasse:<10} {slot:<22} factor {statistics.median(vals):.2f} "
               f"(n={len(vals)} locaties)")

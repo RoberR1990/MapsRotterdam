@@ -56,6 +56,9 @@ jobs:
       - name: Meting ophalen
         env:
           NDW_HISTORY_DIR: ${{ github.workspace }}/../ndw-data/ndw_history
+          # bijgehouden door ndw-verstoringen.yml; ontbreekt hij, dan markeert
+          # de sampler simpelweg niets
+          NDW_BLACKOUTS: ${{ github.workspace }}/../ndw-data/blackouts/ndw_site_blackouts.json
         run: python3 src/sample_ndw.py collect
 
       - name: Wegschrijven naar de databranch

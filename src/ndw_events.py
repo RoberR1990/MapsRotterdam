@@ -101,12 +101,23 @@ def in_rotterdam(r):
             and lo_x <= r["lon"] <= hi_x and lo_y <= r["lat"] <= hi_y)
 
 
-def main():
+def download(bestand):
+    """Feeds staan niet in git; haal ze op als ze er niet zijn."""
+    import urllib.request
+    NDW.mkdir(parents=True, exist_ok=True)
+    doel = NDW / f"{bestand}.xml.gz"
+    with urllib.request.urlopen(f"https://opendata.ndw.nu/{bestand}.xml.gz",
+                                timeout=300) as r:
+        doel.write_bytes(r.read())
+    return doel
+
+
+def main(feeds=None):
     alles = {}
-    for naam, bestand in FEEDS.items():
+    for naam, bestand in (feeds or FEEDS).items():
         if not (NDW / f"{bestand}.xml.gz").exists():
-            print(f"  {naam}: bestand ontbreekt, overgeslagen")
-            continue
+            print(f"  {naam}: ophalen...")
+            download(bestand)
         rows = parse(bestand)
         rot = [r for r in rows if in_rotterdam(r)]
         zonder = sum(1 for r in rows if r["lat"] is None)

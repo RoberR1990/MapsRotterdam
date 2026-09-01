@@ -5,6 +5,9 @@ profiles/weekend_*/
 out/ndw_history/
 out/ndw_snapshot.json
 out/ndw_events_rotterdam.json
+out/ndw_site_blackouts.json
+out/scenario_punten.json
+out/matrix_scenario_*.csv
 data/rdw/
 out/rotterdam-reistijdmatrix.html
 __pycache__/

@@ -28,29 +28,42 @@ def table(port, coords):
     return r["durations"], r["distances"]
 
 
-def main():
+def load_points(stem=None):
+    """Zones, hun gesnapte punten en de index van zone -> puntindices."""
+    stem = stem or STEM
     meta = {z["properties"]["zone_id"]: z["properties"]
-            for z in json.loads((OUT / f"{STEM}.geojson").read_text())["features"]}
-    pts = json.loads((OUT / f"{STEM}_points.json").read_text())
+            for z in json.loads((OUT / f"{stem}.geojson").read_text())["features"]}
+    pts = json.loads((OUT / f"{stem}_points.json").read_text())
     coords = [(p["snap_lon"], p["snap_lat"]) for p in pts]
     idx = {}
     for i, p in enumerate(pts):
         idx.setdefault(p["zone_id"], []).append(i)
-    zids = [z for z in meta if z in idx]
+    return meta, coords, idx, [z for z in meta if z in idx]
+
+
+def zone_matrix(port, meta, coords, idx, zids):
+    """Puntmatrix van OSRM samenvatten naar (duur, meters) per zonepaar."""
+    dur, dist = table(port, coords)
+    m = {}
+    for a in zids:
+        for b in zids:
+            if a == b:
+                m[(a, b)] = (meta[a]["intrazonal_s"], 0)
+                continue
+            ds = [dur[i][j] for i in idx[a] for j in idx[b] if dur[i][j] is not None]
+            ms = [dist[i][j] for i in idx[a] for j in idx[b] if dist[i][j] is not None]
+            m[(a, b)] = ((round(statistics.median(ds)), round(statistics.median(ms)))
+                         if ds else (None, None))
+    return m
+
+
+def main():
+    meta, coords, idx, zids = load_points()
 
     runs = {"freeflow": 5000, **PORTS}
     matrices = {}
     for name, port in runs.items():
-        dur, dist = table(port, coords)
-        m = {}
-        for a in zids:
-            for b in zids:
-                if a == b:
-                    m[(a, b)] = (meta[a]["intrazonal_s"], 0)
-                    continue
-                ds = [dur[i][j] for i in idx[a] for j in idx[b] if dur[i][j] is not None]
-                ms = [dist[i][j] for i in idx[a] for j in idx[b] if dist[i][j] is not None]
-                m[(a, b)] = (round(statistics.median(ds)), round(statistics.median(ms))) if ds else (None, None)
+        m = zone_matrix(port, meta, coords, idx, zids)
         matrices[name] = m
         od = [v[0] / 60 for k, v in m.items() if k[0] != k[1] and v[0]]
         print(f"{name:<24} mediaan {statistics.median(od):5.1f} min   "

@@ -1,0 +1,67 @@
+name: NDW-verstoringen verversen
+
+# Dagelijks: welke meetlocaties liggen naast een wegopbreking? De sampler
+# gebruikt dat om die metingen te markeren, zodat een straat die drie weken
+# openligt niet als structurele congestie in de kalibratie belandt.
+#
+# Apart van de sampler omdat de planningsfeed 17 MB is -- dat elke 15 minuten
+# ophalen is zonde, en de werkzaamheden veranderen toch maar een paar keer per
+# dag.
+
+on:
+  schedule:
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ndw-verstoringen
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Databranch als worktree koppelen
+        run: |
+          git config user.name  "ndw-sampler"
+          git config user.email "ndw-sampler@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin ndw-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin ndw-data:refs/heads/ndw-data
+            git worktree add ../ndw-data ndw-data
+          else
+            git worktree add --detach ../ndw-data
+            git -C ../ndw-data checkout --orphan ndw-data
+            git -C ../ndw-data rm -rq --cached . || true
+            find ../ndw-data -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+          mkdir -p ../ndw-data/blackouts
+
+      - name: Verstoringen ophalen en omzetten
+        run: |
+          python3 src/ndw_events.py
+          python3 src/disruptions.py blackouts
+          cp out/ndw_site_blackouts.json ../ndw-data/blackouts/
+
+      - name: Wegschrijven naar de databranch
+        working-directory: ../ndw-data
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen in de verstoringen."
+            exit 0
+          fi
+          git commit -q -m "Verstoringen bijgewerkt $(TZ=Europe/Amsterdam date '+%Y-%m-%d')"
+          for i in 1 2 3 4; do
+            git push origin ndw-data && exit 0
+            sleep $((2 ** i))
+            git fetch origin ndw-data && git rebase origin/ndw-data || true
+          done
+          exit 1
