@@ -3,9 +3,10 @@ name: NDW-snelheden verzamelen
 # Waar dit draait: op GitHub, niet op je eigen machine en niet in een chat-sessie.
 # Deze repo is publiek, dus Actions-minuten zijn gratis en ongelimiteerd.
 #
-# Cadans: elk half uur. Begonnen op elk kwartier, maar GitHub voerde die
-# planning anderhalf uur lang geen enkele keer uit -- korte intervallen worden
-# bij drukte als eerste overgeslagen. Een half uur is nog steeds ruim genoeg:
+# Cadans: elk half uur, op :07 en :37. Niet op :00 en :30 -- GitHub waarschuwt
+# dat runs rond het hele uur het vaakst vertraagd of overgeslagen worden omdat
+# iedereen daar zijn crons neerzet, en zowel */15 als */30 vielen precies op die
+# drukke minuten. Ze zijn hier allebei geen enkele keer uitgevoerd. Een half uur is nog steeds ruim genoeg:
 # de ochtendspits (07:30-09:00, di-do) levert 9 metingen per week per
 # meetlocatie, en aggregate heeft er 5 nodig. De run doet zelf niets buiten de
 # tijdvakken, dus er wordt ~40% van de dag niets geschreven.
@@ -15,7 +16,7 @@ name: NDW-snelheden verzamelen
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '7,37 * * * *'
   workflow_dispatch:
 
 permissions:
