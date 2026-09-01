@@ -44,8 +44,29 @@ def slot_of(dt):
     wd, h = dt.weekday(), dt.hour + dt.minute / 60
     if wd >= 5:
         return "weekend_middag" if 12 <= h < 17 else None
-    if wd == 0 or wd == 4:      # ma en vr wijken af van een 'typische' werkdag
+
+    if wd in (0, 4):
+        # Maandag en vrijdag wijken af van een doordeweekse di-do: de
+        # maandagochtend is rustiger, de vrijdagmiddag drukker. Ze krijgen eigen
+        # tijdvakken in plaats van dat ze het werkdagbeeld verdunnen -- uit
+        # aparte reeksen kun je later alsnog een gecombineerd ma-vr cijfer
+        # rekenen, andersom niet. Op deze dagen meten we de hele dag door, van
+        # 6 tot 23 uur, dus zonder de gaten die di-do wel heeft.
+        dag = "maandag" if wd == 0 else "vrijdag"
+        if 6 <= h < 7.5:
+            return f"{dag}_vroeg"
+        if 7.5 <= h < 9:
+            return f"{dag}_ochtendspits"
+        if 9 <= h < 16:
+            return f"{dag}_dal"
+        if 16 <= h < 18.5:
+            return f"{dag}_avondspits"
+        if 18.5 <= h < 23:
+            return f"{dag}_avond"
         return None
+
+    # Dinsdag t/m donderdag: de smalle vensters blijven smal, anders verdunt
+    # schoudertijd het spitsbeeld.
     if 7.5 <= h < 9.0:
         return "werkdag_ochtendspits"
     if 10 <= h < 15:

@@ -69,6 +69,19 @@ Historisch verkeer per moment van de week. NDW publiceert open alleen het
 echt weekprofiel. De factoren in `src/timeslots.py` zijn tot dat moment
 **plaatshouders, geen metingen**.
 
+## Tijdvakken
+
+Dinsdag t/m donderdag houdt smalle vensters aan (ochtendspits 07:30-09:00, dal
+10:00-15:00, avondspits 16:00-18:30, avond 20:00-23:00) -- schoudertijd erbij
+zou het spitsbeeld verdunnen.
+
+Maandag en vrijdag krijgen **eigen** tijdvakken over de volle dag, 06:00-23:00
+zonder gaten: `maandag_vroeg` / `_ochtendspits` / `_dal` / `_avondspits` /
+`_avond`, en idem voor vrijdag. Die dagen wijken af van een doordeweekse di-do
+-- de maandagochtend is rustiger, de vrijdagmiddag drukker -- en door ze apart
+te labelen houd je beide opties open: uit aparte reeksen kun je later alsnog een
+gecombineerd ma-vr cijfer rekenen, andersom niet.
+
 ## Waar draait de sampler?
 
 Niet in een chat-sessie en niet op je laptop: `.github/workflows/ndw-sampler.yml`
@@ -98,9 +111,10 @@ blijft.
   zonder Actions -- databranch als worktree, meten, committen, pushen -- vanaf
   elke machine die de repo kan pushen. Wordt aangeroepen door twee
   Claude-routines, met een cron die alleen op de uren vuurt die een tijdvak
-  raken (46 van de 168 uren in een week; de rest was pure verspilling):
+  raken (80 van de 168 uren in een week; de rest was pure verspilling):
 
-      werkdagen  48 5,6,8,9,10,11,12,14,15,18,19,20 * * 2-4   (UTC)
+      di-do      48 5,6,8,9,10,11,12,14,15,18,19,20 * * 2-4   (UTC)
+      ma en vr   48 4-20 * * 1,5                              (UTC)
       weekend    48 10,11,12,13,14 * * 0,6                    (UTC)
 
   ⚠️ Die uren zijn UTC en gaan uit van zomertijd. Na de overgang naar wintertijd
