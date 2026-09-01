@@ -88,7 +88,7 @@ def main():
                          "freeflow_s": round(statistics.median(ds)),
                          "meters": round(statistics.median(ms))})
 
-    with open(OUT / "matrix_freeflow.csv", "w", newline="") as f:
+    with open(OUT / f"matrix_freeflow_{STEM}.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)

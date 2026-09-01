@@ -57,7 +57,7 @@ def main():
               f"p90 {sorted(od)[int(len(od)*.9)]:5.1f} min")
 
     names = list(runs)
-    with open(OUT / "matrix_all.csv", "w", newline="") as f:
+    with open(OUT / f"matrix_all_{STEM}.csv", "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["from_zone", "from_naam", "to_zone", "to_naam", "meters"]
                    + [f"{n}_s" for n in names])
@@ -89,7 +89,10 @@ def write_web(zids, meta, matrices, names):
     blokstructuur in een heatmap de geografie volgt."""
     order = sorted(zids, key=lambda z: (meta[z]["gebied"], meta[z]["naam"]))
     n = len(order)
-    geo = {f["properties"]["zone_id"]: f["geometry"]
+    # vereenvoudigd tot ~3 m: op stadsniveau niet te zien, scheelt een factor vier
+    from shapely.geometry import shape, mapping
+    geo = {f["properties"]["zone_id"]:
+           mapping(shape(f["geometry"]).simplify(0.00004, preserve_topology=True))
            for f in json.loads((OUT / f"{STEM}.geojson").read_text())["features"]}
     data = {
         "n": n,
@@ -100,6 +103,13 @@ def write_web(zids, meta, matrices, names):
         "m": {s: [matrices[s][(a, b)][0] for a in order for b in order] for s in names},
         "meters": [matrices["freeflow"][(a, b)][1] for a in order for b in order],
     }
+    ctx = OUT / "zones.geojson"          # stadscontour als achtergrond op de kaart
+    if ctx.exists():
+        from shapely.ops import unary_union
+        u = unary_union([shape(f["geometry"]).buffer(0)
+                         for f in json.loads(ctx.read_text())["features"]])
+        data["context"] = mapping(u.simplify(0.0004, preserve_topology=True))
+
     (OUT / f"matrix_web_{STEM}.json").write_text(json.dumps(data, separators=(",", ":")))
     print(f"webexport -> out/matrix_web_{STEM}.json "
           f"({(OUT / f'matrix_web_{STEM}.json').stat().st_size // 1024} kB)")

@@ -101,7 +101,7 @@ def main():
     OUT_DIR.mkdir(exist_ok=True)
     (OUT_DIR / "zones.geojson").write_text(
         json.dumps({"type": "FeatureCollection", "features": zones}))
-    (OUT_DIR / "zone_candidates.json").write_text(json.dumps(points))
+    (OUT_DIR / "zones_candidates.json").write_text(json.dumps(points))
     print(f"{len(zones)} zones, {len(points)} kandidaat-punten")
     for z in zones[:6]:
         pr = z["properties"]

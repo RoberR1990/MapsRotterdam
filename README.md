@@ -98,7 +98,7 @@ src/osrm_build.sh      OSRM-graaf uit het OSM-extract
 src/matrix.py          vrije-doorstroommatrix (referentie)
 src/timeslots.py       tijdvakken + congestiefactoren   <- hier kalibreer je
 src/build_slots.py     per tijdvak een eigen OSRM-dataset + router
-src/build_matrices.py  alle matrices -> out/matrix_all.csv
+src/build_matrices.py  alle matrices -> out/matrix_all_<set>.csv + webexport
 src/ndw.py             NDW-meetlocaties en -snelheden
 src/sample_ndw.py      collect (CI) / aggregate -> gemeten factoren
 .github/workflows/     de sampler, elke 15 min op GitHub Actions
@@ -133,5 +133,9 @@ python3 src/build_slots.py
 python3 src/build_matrices.py parkzones
 ```
 
+Beide zone-sets lopen door dezelfde code; het argument kiest welke:
+`zones` (73 buurten) of `parkzones` (99 RDW-parkeergebieden). Uitvoer krijgt de
+set als achtervoegsel, dus `out/matrix_all_parkzones.csv`.
+
 Afhankelijkheden: Docker, `pip install pyproj shapely requests`.
-De OSM- en NDW-downloads staan niet in git (`data/`).
+De OSM-, RDW- en NDW-downloads staan niet in git (`data/`).
