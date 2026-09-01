@@ -154,11 +154,20 @@ def collect():
 def aggregate():
     """Vrije-doorstroomreferentie per meetlocatie = p85 in de nachtelijke uren."""
     per_site = defaultdict(lambda: defaultdict(list))
-    rows = overgeslagen = 0
+    # Dezelfde meetlocatie op hetzelfde tijdstip mag maar een keer meetellen.
+    # Twee triggers naast elkaar, of een handmatige run, leveren anders
+    # dubbele rijen die dat ene moment zwaarder laten wegen.
+    gezien = set()
+    rows = overgeslagen = dubbel = 0
     for path in sorted(HIST.glob("*.csv.gz")):
         with gzip.open(path, "rt", newline="") as f:
             for r in csv.DictReader(f):
                 slot = slot_of(datetime.fromisoformat(r["ts"]).astimezone(TZ))
+                sleutel = (r["ts"], r["site_id"])
+                if sleutel in gezien:
+                    dubbel += 1
+                    continue
+                gezien.add(sleutel)
                 if r.get("verstoord") == "1":
                     overgeslagen += 1
                     continue
@@ -187,14 +196,16 @@ def aggregate():
 
     if not out:
         print(f"Nog te weinig historie ({rows} metingen, {overgeslagen} overgeslagen "
-              f"wegens werkzaamheden). Laat de collect-cron een paar weken draaien.")
+              f"wegens werkzaamheden, {dubbel} dubbel). Laat de sampler een paar "
+              f"weken draaien.")
         return
     with open(OUT / "ndw_factors.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
         w.writerows(out)
     print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren "
-          f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij)")
+          f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij, "
+          f"{dubbel} dubbele rijen genegeerd)")
     for (klasse, slot), vals in sorted(per_class.items()):
         print(f"  {klasse:<10} {slot:<22} factor {statistics.median(vals):.2f} "
               f"(n={len(vals)} locaties)")
