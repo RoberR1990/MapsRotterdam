@@ -87,10 +87,25 @@ blijft.
 - **Tijdzone.** De tijdvakken zijn Rotterdamse kloktijd, expliciet vastgelegd met
   `ZoneInfo("Europe/Amsterdam")`. Een CI-runner staat op UTC en zou anders alles een
   of twee uur verschuiven -- in de zomer belandt de avondspits dan in het dal.
-- **Kanttekening.** GitHub schakelt geplande workflows uit na 60 dagen zonder
-  repo-activiteit, en geplande runs kunnen bij drukte een paar minuten later komen.
-  Voor een weekprofiel maakt dat niets uit. Wil je het strakker, draai dan dezelfde
-  `sample_ndw.py collect` in een gewone crontab op een machine die altijd aanstaat.
+- **De GitHub-scheduler doet het hier niet.** Drie cron-varianten geprobeerd
+  (`*/15`, `*/30` en `7,37` -- die laatste juist weg van het drukke hele uur),
+  over 3,5 uur geen enkele run met `event=schedule`, terwijl handmatig dispatchen
+  elke keer werkt. De workflow staat op `active` en op de default branch, dus aan
+  de opzet ligt het niet. De cron blijft staan voor het geval GitHub alsnog
+  aanslaat -- dubbele metingen zijn onschadelijk.
+
+- **Voorlopige oplossing: `src/collect_standalone.sh`.** Doet hetzelfde werk
+  zonder Actions -- databranch als worktree, meten, committen, pushen -- vanaf
+  elke machine die de repo kan pushen. Wordt nu elk uur aangeroepen door een
+  Claude-routine.
+
+- **Beter: een crontab-regel.** Elk uur via een routine is duur en levert maar
+  drie metingen per week in de ochtendspits. Eén regel op een machine die toch
+  aanstaat is goedkoper en dichter:
+
+      */30 * * * * /pad/naar/MapsRotterdam/src/collect_standalone.sh
+
+  Zet die neer en de routine kan uit.
 
 ## Verstoringen: werkzaamheden en afsluitingen
 
