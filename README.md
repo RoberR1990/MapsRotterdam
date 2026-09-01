@@ -97,12 +97,16 @@ NDW publiceert ook de geplande wegwerkzaamheden, evenementen en afsluitingen
 vertraging die de wegbeheerder zelf verwacht. Drie toepassingen, alle drie
 ingebouwd:
 
-1. **Kalibratie schoonhouden.** 1.596 van de 5.969 meetlocaties liggen binnen
-   250 m van een verstoring. Zonder filter bak je een straat die drie weken
-   openligt in als structurele congestie. `disruptions.py blackouts` maakt per
-   meetlocatie de vensters; de sampler zet er een kolom `verstoord` bij en
-   `aggregate` slaat die rijen over. In een losse meting ging het om 65 van de
-   447 metingen.
+1. **Kalibratie schoonhouden.** 1.472 van de 5.969 meetlocaties liggen binnen
+   250 m van een kortlopende verstoring. Zonder filter bak je een straat die drie
+   weken openligt in als structurele congestie. `disruptions.py blackouts` maakt
+   per meetlocatie de vensters; de sampler zet er een kolom `verstoord` bij en
+   `aggregate` slaat die rijen over. In een losse meting ging het om 47 van de
+   442 metingen.
+
+   Alleen werk korter dan 90 dagen telt mee. 11% van de vensters loopt langer,
+   tot 1.946 dagen -- dat is geen verstoring meer maar de nieuwe normaal, en die
+   snelheden eruit filteren zou de kalibratie juist te optimistisch maken.
 2. **Scenariomatrix "zoals het nu is".** `build_scenario.py` bouwt een
    OSRM-dataset waarin wegvakken vlak bij een afsluiting onbegaanbaar duur zijn,
    via een eigen `process_segment`-handler. Op 1 september (150 afsluitingen)

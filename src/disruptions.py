@@ -25,6 +25,13 @@ VERTRAGEND = ("Verminderd aantal rijstroken", "Snelheidsbeperking",
 SITE_RADIUS_M = 250      # een meetlus meet een stuk weg, niet een punt
 BLOCK_RADIUS_M = 50      # hoe ver rond een afsluitingspunt de weg dicht is
 
+# Werk dat maanden of jaren duurt is voor de kalibratie geen verstoring maar de
+# nieuwe normaal: die snelheden zijn precies wat bestuurders daar dagelijks
+# ervaren. Alleen kortlopend werk telt als iets om uit te filteren. In de feed
+# duurt 11% van de vensters langer dan 90 dagen, met uitschieters boven de vijf
+# jaar; die er niet uit halen zou de kalibratie juist optimistisch maken.
+MAX_VENSTER_DAGEN = 90
+
 
 def load():
     p = OUT / "ndw_events_rotterdam.json"
@@ -49,10 +56,14 @@ def impact(r):
     return None
 
 
-def met_locatie(rows, soorten=("blokkerend", "vertragend")):
-    return [r for r in rows
-            if r["lat"] is not None and impact(r) in soorten
-            and ts(r["start"]) and ts(r["eind"])]
+def met_locatie(rows, soorten=("blokkerend", "vertragend"), max_dagen=None):
+    uit = [r for r in rows
+           if r["lat"] is not None and impact(r) in soorten
+           and ts(r["start"]) and ts(r["eind"])]
+    if max_dagen:
+        uit = [r for r in uit
+               if (ts(r["eind"]) - ts(r["start"])).days <= max_dagen]
+    return uit
 
 
 def actief_op(rows, moment, soorten=("blokkerend",)):
@@ -67,7 +78,7 @@ def meters(lat1, lon1, lat2, lon2):
 
 
 def cmd_blackouts():
-    rows = met_locatie(load())
+    rows = met_locatie(load(), max_dagen=MAX_VENSTER_DAGEN)
     sites = json.loads((OUT / "ndw_sites.json").read_text())
 
     # grofmazig raster zodat we niet elke locatie tegen elke maatregel houden
@@ -90,8 +101,8 @@ def cmd_blackouts():
             geraakt += 1
 
     (OUT / "ndw_site_blackouts.json").write_text(json.dumps(black, separators=(",", ":")))
-    print(f"{len(rows)} verstoringen met locatie -> {geraakt} van {len(sites)} "
-          f"meetlocaties hebben een venster")
+    print(f"{len(rows)} kortlopende verstoringen (<= {MAX_VENSTER_DAGEN} dagen) "
+          f"met locatie -> {geraakt} van {len(sites)} meetlocaties hebben een venster")
     print(f"   mediaan aantal vensters per geraakte locatie: "
           f"{sorted(len(v) for v in black.values())[geraakt // 2] if geraakt else 0}")
     print("-> out/ndw_site_blackouts.json")
