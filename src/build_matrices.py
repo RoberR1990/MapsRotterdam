@@ -10,8 +10,13 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from timeslots import SLOTS, PORTS  # noqa: E402
 
+LABELS = {"freeflow": "Vrije doorstroom (referentie)",
+          **{k: v["label"] for k, v in SLOTS.items()}}
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"
+# welke zone-set: "zones" (buurten) of "parkzones" (RDW-parkeergebieden)
+STEM = sys.argv[1] if len(sys.argv) > 1 else "zones"
 
 
 def table(port, coords):
@@ -25,8 +30,8 @@ def table(port, coords):
 
 def main():
     meta = {z["properties"]["zone_id"]: z["properties"]
-            for z in json.loads((OUT / "zones.geojson").read_text())["features"]}
-    pts = json.loads((OUT / "zone_points.json").read_text())
+            for z in json.loads((OUT / f"{STEM}.geojson").read_text())["features"]}
+    pts = json.loads((OUT / f"{STEM}_points.json").read_text())
     coords = [(p["snap_lon"], p["snap_lat"]) for p in pts]
     idx = {}
     for i, p in enumerate(pts):
@@ -61,7 +66,7 @@ def main():
                 row = [a, meta[a]["naam"], b, meta[b]["naam"],
                        matrices["freeflow"][(a, b)][1]]
                 w.writerow(row + [matrices[n][(a, b)][0] for n in names])
-    print(f"\n{len(zids)**2} cellen x {len(names)} tijdvakken -> out/matrix_all.csv")
+    print(f"\n{len(zids)**2} cellen x {len(names)} tijdvakken -> out/matrix_all_{STEM}.csv")
 
     # Waar doet het tijdvak er het meest toe?
     ff, pk = matrices["freeflow"], matrices["werkdag_avondspits"]
@@ -75,6 +80,29 @@ def main():
     print(f"\nSpreiding van de spitsratio over alle paren: "
           f"x{ratios[-1][0]:.2f} tot x{ratios[0][0]:.2f} "
           f"(mediaan x{ratios[len(ratios)//2][0]:.2f})")
+
+    write_web(zids, meta, matrices, names)
+
+
+def write_web(zids, meta, matrices, names):
+    """Compacte export voor de webweergave: zones gesorteerd op gebied, zodat de
+    blokstructuur in een heatmap de geografie volgt."""
+    order = sorted(zids, key=lambda z: (meta[z]["gebied"], meta[z]["naam"]))
+    n = len(order)
+    geo = {f["properties"]["zone_id"]: f["geometry"]
+           for f in json.loads((OUT / f"{STEM}.geojson").read_text())["features"]}
+    data = {
+        "n": n,
+        "zones": [{"id": z, "naam": meta[z]["naam"], "gebied": meta[z]["gebied"],
+                   "km2": round(meta[z]["area_m2"] / 1e6, 2),
+                   "geom": geo[z]} for z in order],
+        "slots": [{"key": s, "label": LABELS[s]} for s in names],
+        "m": {s: [matrices[s][(a, b)][0] for a in order for b in order] for s in names},
+        "meters": [matrices["freeflow"][(a, b)][1] for a in order for b in order],
+    }
+    (OUT / f"matrix_web_{STEM}.json").write_text(json.dumps(data, separators=(",", ":")))
+    print(f"webexport -> out/matrix_web_{STEM}.json "
+          f"({(OUT / f'matrix_web_{STEM}.json').stat().st_size // 1024} kB)")
 
 
 if __name__ == "__main__":

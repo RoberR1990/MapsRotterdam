@@ -6,12 +6,15 @@ K over, vraagt één /table op en aggregeert de punt-matrix naar een zone-matrix
 import csv
 import json
 import statistics
+import sys
 from pathlib import Path
 
 import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"
+# welke zone-set: "zones" (buurten) of "parkzones" (RDW-parkeergebieden)
+STEM = sys.argv[1] if len(sys.argv) > 1 else "zones"
 OSRM = "http://127.0.0.1:5000"
 MAX_SNAP_M = 250   # verder dan dit betekent: punt lag in water/haven/park
 K_PER_ZONE = 3
@@ -44,9 +47,9 @@ def table(coords):
 
 
 def main():
-    zones = json.loads((OUT / "zones.geojson").read_text())["features"]
+    zones = json.loads((OUT / f"{STEM}.geojson").read_text())["features"]
     meta = {z["properties"]["zone_id"]: z["properties"] for z in zones}
-    cands = json.loads((OUT / "zone_candidates.json").read_text())
+    cands = json.loads((OUT / f"{STEM}_candidates.json").read_text())
 
     kept = snap(cands)
     by_zone = {}
@@ -90,11 +93,11 @@ def main():
         w.writeheader()
         w.writerows(rows)
     json.dump([{k: p[k] for k in ("zone_id", "cand", "snap_lon", "snap_lat", "snap_m")}
-               for p in chosen], open(OUT / "zone_points.json", "w"))
+               for p in chosen], open(OUT / f"{STEM}_points.json", "w"))
 
     od = [r for r in rows if r["from_zone"] != r["to_zone"]]
     mins = sorted(r["freeflow_s"] / 60 for r in od)
-    print(f"{len(rows)} cellen weggeschreven -> out/matrix_freeflow.csv")
+    print(f"{len(rows)} cellen weggeschreven -> out/matrix_freeflow_{STEM}.csv")
     print(f"  reistijd min/mediaan/p90/max: {mins[0]:.1f} / "
           f"{mins[len(mins)//2]:.1f} / {mins[int(len(mins)*.9)]:.1f} / {mins[-1]:.1f} min")
 

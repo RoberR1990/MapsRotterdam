@@ -11,10 +11,12 @@ Na 2-3 weken heb je per meetlocatie een echt profiel over de week heen.
 """
 import csv
 import gzip
+import os
 import statistics
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import requests
@@ -22,8 +24,12 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ndw import parse_speeds, ROTTERDAM_BBOX, NDW, OUT  # noqa: E402
 
-HIST = OUT / "ndw_history"
+# CI zet dit naar de losse databranch-worktree; lokaal blijft het out/ndw_history
+HIST = Path(os.environ.get("NDW_HISTORY_DIR") or OUT / "ndw_history")
 FEED = "https://opendata.ndw.nu/trafficspeed.xml.gz"
+# Tijdvakken zijn Rotterdamse kloktijd. Expliciet vastleggen, want een
+# CI-runner staat op UTC en zou alles een of twee uur verschuiven.
+TZ = ZoneInfo("Europe/Amsterdam")
 
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
 def slot_of(dt):
@@ -38,23 +44,35 @@ def slot_of(dt):
         return "werkdag_dal"
     if 16 <= h < 18.5:
         return "werkdag_avondspits"
-    if h >= 20 or h < 5:
+    if 20 <= h < 23:
+        # smalle referentievensters: dit tijdvak levert alleen de
+        # vrije-doorstroomreferentie, daar zijn drie uur per dag genoeg voor
         return "werkdag_avond"
     return None
 
 
 def sites_in_region():
+    """Meetlocaties in de regio, uit het meegeleverde out/ndw_sites.json.
+
+    Dat bestand staat in git, zodat een CI-run niet elke keer de 11 MB grote
+    locatietabel hoeft te downloaden. Ververs het af en toe met src/ndw.py.
+    """
     import json
-    return {r["site_id"]: r for r in json.loads((OUT / "ndw_snapshot.json").read_text())}
+    return {r["id"]: r for r in json.loads((OUT / "ndw_sites.json").read_text())}
 
 
 def collect():
+    now_local = datetime.now(TZ)
+    if slot_of(now_local) is None:
+        # buiten elk tijdvak: niets te meten, dus ook niets wegschrijven
+        print(f"{now_local:%Y-%m-%d %H:%M} valt in geen tijdvak - overgeslagen")
+        return
     HIST.mkdir(parents=True, exist_ok=True)
     tmp = NDW / "trafficspeed_live.xml.gz"
     tmp.write_bytes(requests.get(FEED, timeout=120).content)
     speeds = parse_speeds(tmp)
     region = sites_in_region()
-    now = datetime.now(timezone.utc).astimezone()
+    now = now_local
 
     path = HIST / f"{now:%Y-%m-%d}.csv.gz"
     new = not path.exists()
@@ -78,7 +96,7 @@ def aggregate():
     for path in sorted(HIST.glob("*.csv.gz")):
         with gzip.open(path, "rt", newline="") as f:
             for r in csv.DictReader(f):
-                slot = slot_of(datetime.fromisoformat(r["ts"]))
+                slot = slot_of(datetime.fromisoformat(r["ts"]).astimezone(TZ))
                 if slot and int(r["n"]) > 0:
                     per_site[r["site_id"]][slot].append(float(r["speed_kmh"]))
                     rows += 1
