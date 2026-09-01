@@ -14,6 +14,7 @@ import gzip
 import os
 import statistics
 import sys
+import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -22,7 +23,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ndw import parse_speeds, ROTTERDAM_BBOX, NDW, OUT  # noqa: E402
+from ndw import parse_speeds, OUT  # noqa: E402
 
 # CI zet dit naar de losse databranch-worktree; lokaal blijft het out/ndw_history
 HIST = Path(os.environ.get("NDW_HISTORY_DIR") or OUT / "ndw_history")
@@ -68,9 +69,12 @@ def collect():
         print(f"{now_local:%Y-%m-%d %H:%M} valt in geen tijdvak - overgeslagen")
         return
     HIST.mkdir(parents=True, exist_ok=True)
-    tmp = NDW / "trafficspeed_live.xml.gz"
-    tmp.write_bytes(requests.get(FEED, timeout=120).content)
-    speeds = parse_speeds(tmp)
+    # naar een tijdelijk bestand: data/ staat niet in git, dus in een verse
+    # checkout bestaat die map niet
+    with tempfile.NamedTemporaryFile(suffix=".xml.gz") as tmp:
+        tmp.write(requests.get(FEED, timeout=120).content)
+        tmp.flush()
+        speeds = parse_speeds(tmp.name)
     region = sites_in_region()
     now = now_local
 

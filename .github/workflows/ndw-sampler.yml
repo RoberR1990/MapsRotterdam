@@ -42,12 +42,15 @@ jobs:
           git config user.name  "ndw-sampler"
           git config user.email "ndw-sampler@users.noreply.github.com"
           if git ls-remote --exit-code --heads origin ndw-data >/dev/null 2>&1; then
-            git fetch --depth=1 origin ndw-data
+            git fetch --depth=1 origin ndw-data:refs/heads/ndw-data
             git worktree add ../ndw-data ndw-data
           else
+            # nieuwe, lege databranch: een orphan heeft nog geen commit, dus
+            # 'reset --hard' werkt hier niet -- index en bestanden zelf leegmaken
             git worktree add --detach ../ndw-data
             git -C ../ndw-data checkout --orphan ndw-data
-            git -C ../ndw-data reset --hard
+            git -C ../ndw-data rm -rq --cached . || true
+            find ../ndw-data -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           fi
 
       - name: Meting ophalen
