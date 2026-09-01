@@ -1,10 +1,11 @@
 """Verzamel NDW-snelheden en bouw er een weekprofiel van op.
 
 NDW publiceert alleen het *actuele* beeld gratis en zonder sleutel; historie zit
-achter een (gratis) Dexter-account. Door dit script elke 5 minuten te draaien
-bouw je je eigen historie op:
+achter een (gratis) Dexter-account. Door dit periodiek te draaien bouw je je
+eigen historie op. Gebruik daarvoor src/collect_standalone.sh -- dat regelt de
+databranch en de push eromheen:
 
-    */5 * * * * cd /pad/naar/MapsRotterdam && python3 src/sample_ndw.py collect
+    */30 * * * * /pad/naar/MapsRotterdam/src/collect_standalone.sh
 
 Na 2-3 weken heb je per meetlocatie een echt profiel over de week heen.
 `aggregate` zet dat om in congestiefactoren voor src/timeslots.py.
