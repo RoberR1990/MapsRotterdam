@@ -1,0 +1,72 @@
+name: NDW-snelheden verzamelen
+
+# Waar dit draait: op GitHub, niet op je eigen machine en niet in een chat-sessie.
+# Deze repo is publiek, dus Actions-minuten zijn gratis en ongelimiteerd.
+#
+# Cadans: elke 15 minuten. NDW publiceert elke minuut, dus dit is ruim binnen
+# wat netjes is, en voor mediane snelheden per tijdvak is het meer dan genoeg --
+# de ochtendspits levert zo al 18 metingen per week per meetlocatie. De run doet
+# zelf niets buiten de tijdvakken, dus er wordt ~40% van de dag niets geschreven.
+#
+# Let op: GitHub schakelt geplande workflows uit na 60 dagen zonder activiteit
+# in de repo. Duurt het verzamelen langer, duw dan af en toe een commit.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ndw-sampler
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install --quiet requests
+
+      - name: Databranch als worktree koppelen
+        run: |
+          git config user.name  "ndw-sampler"
+          git config user.email "ndw-sampler@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin ndw-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin ndw-data
+            git worktree add ../ndw-data ndw-data
+          else
+            git worktree add --detach ../ndw-data
+            git -C ../ndw-data checkout --orphan ndw-data
+            git -C ../ndw-data reset --hard
+          fi
+
+      - name: Meting ophalen
+        env:
+          NDW_HISTORY_DIR: ${{ github.workspace }}/../ndw-data/ndw_history
+        run: python3 src/sample_ndw.py collect
+
+      - name: Wegschrijven naar de databranch
+        working-directory: ../ndw-data
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Niets veranderd -- buiten de tijdvakken of geen nieuwe metingen."
+            exit 0
+          fi
+          git commit -q -m "NDW-meting $(TZ=Europe/Amsterdam date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git push origin ndw-data && exit 0
+            sleep $((2 ** i))
+            git fetch origin ndw-data && git rebase origin/ndw-data || true
+          done
+          exit 1
