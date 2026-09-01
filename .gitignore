@@ -4,4 +4,5 @@ profiles/werkdag_*/
 profiles/weekend_*/
 out/ndw_history/
 out/ndw_snapshot.json
+out/rotterdam-reistijdmatrix.html
 __pycache__/
