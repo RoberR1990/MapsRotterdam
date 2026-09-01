@@ -29,7 +29,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 45
     steps:
       - name: Code ophalen
         uses: actions/checkout@v4
@@ -56,26 +56,33 @@ jobs:
             find ../ndw-data -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           fi
 
-      - name: Meting ophalen
+      - name: Meten en wegschrijven (twee keer, half uur ertussen)
         env:
           NDW_HISTORY_DIR: ${{ github.workspace }}/../ndw-data/ndw_history
           # bijgehouden door ndw-verstoringen.yml; ontbreekt hij, dan markeert
           # de sampler simpelweg niets
           NDW_BLACKOUTS: ${{ github.workspace }}/../ndw-data/blackouts/ndw_site_blackouts.json
-        run: python3 src/sample_ndw.py collect
-
-      - name: Wegschrijven naar de databranch
-        working-directory: ../ndw-data
         run: |
-          git add -A
-          if git diff --cached --quiet; then
-            echo "Niets veranderd -- buiten de tijdvakken of geen nieuwe metingen."
-            exit 0
-          fi
-          git commit -q -m "NDW-meting $(TZ=Europe/Amsterdam date '+%Y-%m-%d %H:%M')"
-          for i in 1 2 3 4; do
-            git push origin ndw-data && exit 0
-            sleep $((2 ** i))
-            git fetch origin ndw-data && git rebase origin/ndw-data || true
-          done
-          exit 1
+          set -u
+          meet_en_push () {
+            python3 src/sample_ndw.py collect || return 0
+            cd ../ndw-data
+            git add -A
+            if git diff --cached --quiet; then
+              echo "Niets veranderd -- buiten de tijdvakken of geen nieuwe metingen."
+              cd - >/dev/null; return 0
+            fi
+            git commit -q -m "NDW-meting $(TZ=Europe/Amsterdam date '+%Y-%m-%d %H:%M')"
+            for i in 1 2 3 4; do
+              git push origin ndw-data && { cd - >/dev/null; return 0; }
+              sleep $((2 ** i))
+              git fetch origin ndw-data && git rebase origin/ndw-data || true
+            done
+            cd - >/dev/null
+            echo "::warning::push mislukt"
+          }
+          meet_en_push
+          # Twee metingen per run, zodat een uurlijkse trigger alsnog een cadans
+          # van een half uur oplevert. Ruim binnen de 6-uurslimiet van een job.
+          sleep 1680
+          meet_en_push
