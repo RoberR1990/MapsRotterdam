@@ -18,14 +18,16 @@ python3 -c "import requests" 2>/dev/null || pip3 install --quiet requests
 git config user.name  "ndw-sampler" 2>/dev/null || true
 git config user.email "ndw-sampler@users.noreply.github.com" 2>/dev/null || true
 
-# databranch als worktree; hij bestaat al, dus geen orphan-tak nodig
-if [ ! -d "$WORK/.git" ] && [ ! -f "$WORK/.git" ]; then
-  git fetch --depth=1 origin ndw-data:refs/heads/ndw-data 2>/dev/null || true
-  git worktree add "$WORK" ndw-data
-else
-  git -C "$WORK" fetch --depth=1 origin ndw-data
-  git -C "$WORK" reset --hard origin/ndw-data
+# Databranch in een losgekoppelde worktree. Bewust niet de branch zelf
+# uitchecken: git weigert dat als ndw-data elders al uitgecheckt staat, en dan
+# faalt een geplande meting op een detail dat niets met meten te maken heeft.
+git worktree prune
+if [ ! -e "$WORK/.git" ]; then
+  git worktree add --detach "$WORK"
 fi
+git -C "$WORK" fetch --depth=1 origin ndw-data
+git -C "$WORK" checkout -q --detach FETCH_HEAD
+git -C "$WORK" clean -qfd
 
 export NDW_HISTORY_DIR="$WORK/ndw_history"
 export NDW_BLACKOUTS="$WORK/blackouts/ndw_site_blackouts.json"
