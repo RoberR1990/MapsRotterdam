@@ -36,6 +36,8 @@ FEED = "https://opendata.ndw.nu/trafficspeed.xml.gz"
 # CI-runner staat op UTC en zou alles een of twee uur verschuiven.
 TZ = ZoneInfo("Europe/Amsterdam")
 
+VELDEN = ["ts", "site_id", "speed_kmh", "n", "verstoord"]
+
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
 def slot_of(dt):
     wd, h = dt.weekday(), dt.hour + dt.minute / 60
@@ -90,6 +92,32 @@ def verstoorde_locaties(moment):
     return hit
 
 
+def zet_kolommen_klaar(path):
+    """Zorg dat het dagbestand de huidige kolommen heeft.
+
+    Zonder dit worden na een schemawijziging bredere rijen achter een oudere
+    header geplakt. csv.DictReader stopt die extra waarde dan onder de sleutel
+    None, en een filter op r["verstoord"] doet stilzwijgend niets meer.
+    """
+    if not path.exists():
+        with gzip.open(path, "wt", newline="") as f:
+            csv.writer(f).writerow(VELDEN)
+        return
+    with gzip.open(path, "rt", newline="") as f:
+        rijen = list(csv.reader(f))
+    if not rijen or rijen[0] == VELDEN:
+        return
+    oud = rijen[0]
+    with gzip.open(path, "wt", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(VELDEN)
+        for r in rijen[1:]:
+            # rijen die al de nieuwe breedte hebben zijn positioneel te lezen
+            d = dict(zip(VELDEN if len(r) == len(VELDEN) else oud, r))
+            w.writerow([d.get(k, "0") for k in VELDEN])
+    print(f"   dagbestand omgezet: {oud} -> {VELDEN}")
+
+
 def collect():
     now_local = datetime.now(TZ)
     if slot_of(now_local) is None:
@@ -108,11 +136,9 @@ def collect():
 
     verstoord = verstoorde_locaties(now)
     path = HIST / f"{now:%Y-%m-%d}.csv.gz"
-    new = not path.exists()
+    zet_kolommen_klaar(path)
     with gzip.open(path, "at", newline="") as f:
         w = csv.writer(f)
-        if new:
-            w.writerow(["ts", "site_id", "speed_kmh", "n", "verstoord"])
         k = v = 0
         for sid, m in speeds.items():
             if sid in region:

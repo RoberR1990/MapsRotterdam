@@ -73,12 +73,15 @@ echt weekprofiel. De factoren in `src/timeslots.py` zijn tot dat moment
 
 Niet in een chat-sessie en niet op je laptop: `.github/workflows/ndw-sampler.yml`
 draait op **GitHub Actions**. Deze repo is publiek, dus Actions-minuten zijn gratis
-en ongelimiteerd. Elke 15 minuten haalt de workflow het NDW-beeld op en schrijft de
+en ongelimiteerd. Elk half uur haalt de workflow het NDW-beeld op en schrijft de
 meting naar een aparte branch `ndw-data`, zodat de geschiedenis van `main` schoon
 blijft.
 
-- **Cadans** — NDW publiceert elke minuut; 15 minuten is dus ruim binnen wat netjes
-  is en levert alsnog 18 metingen per week per meetlocatie in de ochtendspits.
+- **Cadans** — elk half uur. Op elk kwartier begonnen, maar GitHub voerde die
+  planning anderhalf uur lang geen enkele keer uit; korte intervallen worden bij
+  drukte als eerste overgeslagen. Een half uur levert nog 9 metingen per week per
+  meetlocatie in de ochtendspits, en `aggregate` heeft er 5 nodig. De tijdvakken
+  blijven dus even smal -- ze verbreden zou de spits juist verdunnen.
 - **Buiten de tijdvakken doet de run niets.** Dat scheelt ~40% van de schrijfacties.
   Ongeveer 150 kB per dag, dus na drie weken zo'n 3 MB.
 - **Tijdzone.** De tijdvakken zijn Rotterdamse kloktijd, expliciet vastgelegd met
@@ -147,7 +150,7 @@ src/ndw_events.py      NDW-situatiefeeds (werkzaamheden, afsluitingen, bruggen)
 src/disruptions.py     blackouts voor de sampler / punten voor een scenario
 src/build_scenario.py  scenariomatrix voor een moment, met afsluitingen
 src/sample_ndw.py      collect (CI) / aggregate -> gemeten factoren
-.github/workflows/     sampler (elke 15 min) + verstoringen (dagelijks)
+.github/workflows/     sampler (elk half uur) + verstoringen (dagelijks)
 ```
 
 ## Ontwerpkeuze: profiel per tijdvak, geen vermenigvuldiging
