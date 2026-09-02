@@ -15,12 +15,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sample_ndw import slot_of, TZ, HIST  # noqa: E402
+from sample_ndw import slot_of, TZ, HIST, HIST_TT, MIN_DAGEN  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"
 MINUUT = 48          # de minuut waarop de routines vuren
-DOEL_MOMENTEN = 20   # per tijdvak; aggregate heeft er minstens 5 nodig
+DOEL_MOMENTEN = 20   # per tijdvak, voor een gladde mediaan
+# Losse dagen zijn de echte maat: meerdere metingen op dezelfde avond halen de
+# ruis omlaag maar zeggen niets over hoe dinsdag van donderdag verschilt.
+DOEL_DAGEN = MIN_DAGEN
 
 LABELS = {
     "vroeg": "Vroege ochtend", "ochtendspits": "Ochtendspits", "dal": "Dal",
@@ -69,11 +72,14 @@ def vensters():
 
 def historie():
     momenten = defaultdict(set)
+    dagen = defaultdict(set)
     per_site = defaultdict(lambda: defaultdict(set))
     gezien = set()
     stats = {"bruikbaar": 0, "dubbel": 0, "verstoord": 0}
     eerste = laatste = None
-    for p in sorted(glob.glob(str(HIST / "*.csv.gz"))):
+    paden = (sorted(glob.glob(str(HIST / "*.csv.gz")))
+             + sorted(glob.glob(str(HIST_TT / "*.csv.gz"))))
+    for p in paden:
         with gzip.open(p, "rt", newline="") as f:
             for r in csv.DictReader(f):
                 k = (r["ts"], r["site_id"])
@@ -89,26 +95,35 @@ def historie():
                     continue
                 stats["bruikbaar"] += 1
                 momenten[s].add(r["ts"])
+                dagen[s].add(r["ts"][:10])
                 per_site[r["site_id"]][s].add(r["ts"])
                 eerste = min(eerste or r["ts"], r["ts"])
                 laatste = max(laatste or r["ts"], r["ts"])
-    return momenten, per_site, stats, eerste, laatste
+    return momenten, dagen, per_site, stats, eerste, laatste
 
 
 def main():
     rst = rooster()
     per_week = defaultdict(int)
+    dagen_week = defaultdict(set)
     for c in rst:
         per_week[c["slot"]] += 1
+        dagen_week[c["slot"]].add(c["dag"])
 
-    momenten, per_site, stats, eerste, laatste = historie()
+    momenten, dagen, per_site, stats, eerste, laatste = historie()
     slots = []
     for key in sorted(per_week):
         soort = key.split("_", 1)[1]
         groep = key.split("_", 1)[0]
         klaar = sum(1 for s in per_site if len(per_site[s].get(key, ())) >= 5)
+        dpw = len(dagen_week[key])
+        gehad = len(dagen.get(key, ()))
         slots.append({
             "key": key,
+            "dagen": gehad,
+            "dagen_per_week": dpw,
+            "doel_dagen": DOEL_DAGEN,
+            "weken_nodig": round(max(0, DOEL_DAGEN - gehad) / dpw, 1) if dpw else None,
             "groep": {"werkdag": "di–do", "maandag": "maandag",
                       "vrijdag": "vrijdag", "weekend": "weekend"}[groep],
             "soort": LABELS.get(soort, soort),
@@ -123,6 +138,7 @@ def main():
         "momenten_totaal": len(alle_momenten),
         "gegenereerd": datetime.now(TZ).isoformat(timespec="minutes"),
         "eerste_meting": eerste, "laatste_meting": laatste,
+        "doel_dagen": DOEL_DAGEN,
         "rooster": rst, "vensters": vensters(), "minuut": MINUUT,
         "dagen": DAGEN, "slots": slots, "stats": stats,
         "vuringen_per_week": len(rst),
@@ -134,10 +150,11 @@ def main():
     print(f"{len(rst)} vuringen per week over {len(slots)} tijdvakken")
     print(f"historie: {stats['bruikbaar']} bruikbaar, {stats['dubbel']} dubbel, "
           f"{stats['verstoord']} verstoord")
-    for s in slots:
-        bal = "#" * min(20, round(s["momenten"] / s["doel"] * 20))
-        print(f"  {s['groep']:<8} {s['soort']:<16} {s['momenten']:>3}/{s['doel']}"
-              f"  {s['per_week']:>2}/week  {bal}")
+    print(f"\n{'groep':<9}{'tijdvak':<17}{'dagen':>7}{'/wk':>5}{'nog':>7}  metingen")
+    for s in sorted(slots, key=lambda x: (x["weken_nodig"] or 99, x["groep"])):
+        nog = "klaar" if s["dagen"] >= DOEL_DAGEN else f"{s['weken_nodig']} wk"
+        print(f"  {s['groep']:<8}{s['soort']:<17}{s['dagen']:>4}/{DOEL_DAGEN}"
+              f"{s['dagen_per_week']:>5}{nog:>8}  {s['momenten']:>3}")
 
 
 if __name__ == "__main__":

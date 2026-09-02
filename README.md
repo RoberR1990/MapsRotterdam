@@ -90,9 +90,26 @@ Leidt het meetrooster af uit `slot_of` -- afgetast in plaats van overgetypt, dus
 rooster en code kunnen niet uit elkaar lopen -- en zet dat samen met de stand van
 de historie in `out/progress.json` voor de webweergave.
 
-De dunne tijdvakken bepalen het tempo: `maandag_vroeg` en `vrijdag_vroeg` krijgen
-maar een meting per week en hebben dus vijf weken nodig voor de ondergrens van
-vijf, terwijl `werkdag_dal` er vijftien per week binnenhaalt.
+### Wanneer is een tijdvak bruikbaar?
+
+Niet bij genoeg metingen, maar bij genoeg **losse dagen**. Nagerekend op de eerste
+dag data (363 meetpunten met 7 momenten in `werkdag_avond`):
+
+| momenten per meetpunt | afwijking per punt | afwijking klassemediaan |
+|---|---|---|
+| 1 | 4,5% (p90 16,5%) | 1,3% |
+| 3 | 2,4% (p90 10,3%) | 1,1% |
+| 5 | 1,5% (p90 7,2%) | 1,1% |
+
+De klassemediaan -- het getal dat werkelijk in `timeslots.py` belandt -- is een
+mediaan over honderden meetpunten en zit al na één moment binnen ~1%. Ruis binnen
+een moment is dus het probleem niet. Wat we niet weten is hoe dinsdag van donderdag
+verschilt, en die week van de volgende: daar helpen tien metingen op dezelfde avond
+niets tegen. Vandaar `MIN_DAGEN = 3` naast `MIN_METINGEN = 5`.
+
+Gevolg voor het tempo: di-do haalt 3 dagen per week en is na een week rond, weekend
+na anderhalve week, maar **maandag en vrijdag worden maar 1x per week gemeten en
+hebben dus 3 weken nodig**. Die bepalen wanneer alles klaar is.
 
 ## Waar draait de sampler?
 

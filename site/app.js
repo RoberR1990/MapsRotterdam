@@ -327,15 +327,14 @@ function vulVoortgang(){
     if (!rijen.length) return;
     html += `<div class="hd">${g}</div>`;
     rijen.forEach(s => {
-      const pct = Math.min(100, s.momenten / s.doel * 100);
-      const mark = 5 / s.doel * 100;
+      const pct = Math.min(100, s.dagen / s.doel_dagen * 100);
+      const klaar = s.dagen >= s.doel_dagen;
       html += `<div class="row">
         <span class="lab">${s.soort}</span>
-        <span class="track">
-          <span class="fill" style="width:${pct}%"></span>
-          <span class="mark" style="left:${mark}%"></span>
-        </span>
-        <span class="n"><b>${s.momenten}</b>/${s.doel} &middot; ${s.per_week}/wk</span>
+        <span class="track"><span class="fill" style="width:${pct}%"></span></span>
+        <span class="n"><b>${s.dagen}</b>/${s.doel_dagen} dagen<br>
+          <span style="color:var(--ink-3)">${klaar ? "klaar" : s.weken_nodig + " wk"}
+          &middot; ${s.momenten}&times;</span></span>
       </div>`;
     });
   });
@@ -346,15 +345,18 @@ function vulVoortgang(){
   document.getElementById("pSlots").textContent = `${gestart}/${P.slots.length}`;
   document.getElementById("pWeek").textContent = P.vuringen_per_week;
 
-  const traag = P.slots.filter(s => s.per_week <= 2)
-                       .sort((a,b) => a.per_week - b.per_week);
-  const weken = t => Math.ceil(5 / t.per_week);
+  const traag = P.slots.slice().sort((a, b) => b.weken_nodig - a.weken_nodig)[0];
+  const snel = P.slots.slice().sort((a, b) => a.weken_nodig - b.weken_nodig)[0];
   document.getElementById("progNote").innerHTML =
     `Stand op ${P.gegenereerd.replace("T", " ").slice(0, 16)}. `
-    + `De dunne tijdvakken bepalen het tempo: <b>${traag[0].groep} ${traag[0].soort.toLowerCase()}</b>`
-    + ` krijgt maar ${traag[0].per_week} meting${traag[0].per_week === 1 ? "" : "en"} per week`
-    + ` en heeft dus ${weken(traag[0])} weken nodig voor de ondergrens van vijf.`
-    + ` De brede tijdvakken zijn binnen twee weken rond.`;
+    + `Wat telt zijn <b>losse dagen</b>, niet losse metingen: tien metingen op één `
+    + `avond halen de ruis omlaag maar zeggen niets over hoe dinsdag van donderdag `
+    + `verschilt. Nagerekend op de eerste dag data zat de klassemediaan al na één `
+    + `moment binnen ongeveer 1% van de waarde uit zeven momenten &mdash; ruis is het `
+    + `probleem dus niet, spreiding over dagen wel. `
+    + `De dinsdag-tot-donderdag tijdvakken zijn over ${snel.weken_nodig} week rond; `
+    + `<b>${traag.groep}</b> wordt maar ${traag.dagen_per_week}&times; per week gemeten `
+    + `en heeft nog ${traag.weken_nodig} weken nodig. Dat bepaalt het tempo.`;
 }
 
 /* ================= NDW-dekking en kalibratieverloop ================= */

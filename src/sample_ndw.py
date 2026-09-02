@@ -45,6 +45,15 @@ TZ = ZoneInfo("Europe/Amsterdam")
 
 VELDEN = ["ts", "site_id", "speed_kmh", "n", "verstoord"]
 VELDEN_TT = ["ts", "site_id", "duur_s", "ref_s", "n", "verstoord"]
+
+# Wanneer is een tijdvak bruikbaar? Niet bij genoeg metingen, maar bij genoeg
+# LOSSE DAGEN. Zeven metingen op een avond zijn zeven keer dezelfde avond: ze
+# halen de ruis binnen dat moment omlaag, maar zeggen niets over hoe de dinsdag
+# van de donderdag verschilt. Nagerekend op de eerste dag data: de klassemediaan
+# zat al na een enkel moment binnen ~1% van de waarde uit zeven momenten, dus
+# ruis is het probleem niet -- spreiding over dagen wel.
+MIN_DAGEN = 3
+MIN_METINGEN = 5
 HIST_TT = Path(os.environ.get("NDW_TT_DIR") or HIST.parent / "ndw_traveltime")
 
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
@@ -237,7 +246,8 @@ def aggregate():
                         continue
                     v = waarde(r)
                     if slot and v is not None:
-                        per_site[r["site_id"]][slot].append(v)
+                        dag = datetime.fromisoformat(r["ts"]).astimezone(TZ).date()
+                        per_site[r["site_id"]][slot].append((dag, v))
                         rows += 1
 
     lees(HIST.glob("*.csv.gz"),
@@ -249,26 +259,34 @@ def aggregate():
     region = sites_in_region()
     per_class = defaultdict(list)
     out = []
+    def bruikbaar(paren):
+        return (len(paren) >= MIN_METINGEN
+                and len({d for d, _ in paren}) >= MIN_DAGEN)
+
     for sid, slots in per_site.items():
         ref = slots.get("werkdag_avond")
-        if not ref or len(ref) < 5:      # zonder rustige referentie geen factor
+        if not ref or not bruikbaar(ref):   # zonder rustige referentie geen factor
             continue
-        free = sorted(ref)[int(len(ref) * 0.85)]
-        if free < 5:
+        rw = sorted(v for _, v in ref)
+        free = rw[int(len(rw) * 0.85)]
+        if free <= 0:
             continue
         klasse = road_class(sid)
-        for slot, vals in slots.items():
-            if len(vals) < 5:
+        for slot, paren in slots.items():
+            if not bruikbaar(paren):
                 continue
-            f = round(statistics.median(vals) / free, 3)
+            f = round(statistics.median(v for _, v in paren) / free, 3)
             out.append({"site_id": sid, "klasse": klasse, "slot": slot,
-                        "n_metingen": len(vals), "factor": f})
+                        "n_metingen": len(paren),
+                        "n_dagen": len({d for d, _ in paren}), "factor": f})
             per_class[(klasse, slot)].append(f)
 
     if not out:
-        print(f"Nog te weinig historie ({rows} metingen, {overgeslagen} overgeslagen "
-              f"wegens werkzaamheden, {dubbel} dubbel). Laat de sampler een paar "
-              f"weken draaien.")
+        dagen = {d for sl in per_site.values() for pr in sl.values() for d, _ in pr}
+        print(f"Nog niet bruikbaar: {rows} metingen over {len(dagen)} dag(en), "
+              f"{overgeslagen} overgeslagen wegens werkzaamheden, {dubbel} dubbel. "
+              f"Een tijdvak telt mee vanaf {MIN_DAGEN} losse dagen en "
+              f"{MIN_METINGEN} metingen.")
         return
     with open(OUT / "ndw_factors.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
