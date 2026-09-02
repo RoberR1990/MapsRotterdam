@@ -25,6 +25,7 @@ GEGEVENS = {
     "__PROGRESS__": "progress.json",
     "__COVERAGE__": "ndw_coverage.json",
     "__HISTORY__": "matrix_history_parkzones.json",
+    "__DAGPROFIEL__": "dagprofiel.json",
 }
 
 

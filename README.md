@@ -191,6 +191,43 @@ meestijgen; er worden alleen verhoudingen gebruikt, dus de eenheid doet er niet
 toe. Ze gaan in een eigen dagbestand `ndw_traveltime/`, niet in het
 snelheidsbestand -- seconden en km/u door elkaar mengen vraagt om ongelukken.
 
+## Wat de eerste dag meten liet zien
+
+`src/dagprofiel.py` deelt elke gemeten reistijd door de snelste waarneming van
+diezelfde dag op datzelfde traject, zodat de lengte van het traject niet meetelt.
+2.625 trajecten, woensdag 2 september, 14:48-22:48:
+
+| tijd | snelweg | provinciaal | stedelijk |
+|---|---|---|---|
+| 14:48 | x1,11 | x1,15 | x1,13 |
+| **16:49** | **x1,41** | x1,19 | x1,25 |
+| 17:49 | x1,17 | x1,16 | x1,16 |
+| 20:49 | x1,04 | x1,06 | x1,05 |
+| 22:48 | x1,02 | x1,01 | x1,01 |
+
+Op het drukste moment, met de plaatshouder ernaast:
+
+| wegklasse | mediaan | p75 | p90 | plaatshouder |
+|---|---|---|---|---|
+| snelweg | x1,41 | x2,34 | x3,78 | x2,00 |
+| provinciaal | x1,19 | x1,41 | x1,95 | x2,00 |
+| stedelijk | x1,25 | x1,71 | x2,83 | x1,61 |
+
+**Congestie is geen enkel getal.** Het model rekent met een factor per wegklasse,
+en dat vangt de middenmoot maar mist de staart volledig: op de snelweg loopt de
+helft x1,41 uit, een kwart meer dan x2,3, een tiende meer dan x3,8. De
+plaatshouder zit te hoog voor de gewone rit en veel te laag voor de slechte. Wie
+op deze matrix plant heeft naast de mediaan een p90-variant nodig -- dat is een
+tweede set factoren uit dezelfde metingen, geen tweede meetopzet.
+
+Twee dingen die ik hierbij fout had. De extremen (tot x22 op de verbindingen bij
+het Terbregseplein) leken een artefact van korte trajecten, maar korte trajecten
+zijn maar 5% van het totale tijdverlies en juist de *lange* trajecten hebben de
+hoogste mediaan (x1,42 boven 120 s vrije duur tegen x1,18 eronder). En uit één dag
+is een normale spits niet van een incident te onderscheiden; dat 47% van de
+snelwegtrajecten om 16:49 boven x1,5 zat wijst op een brede spits, maar zeker is
+dat pas na meer dagen.
+
 ## Van schatting naar meting
 
 `src/matrix_history.py` legt bij elke factorwijziging een versie vast: mediaan en

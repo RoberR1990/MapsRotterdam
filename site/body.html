@@ -176,6 +176,56 @@
 </section>
 
 <section>
+  <h2>Wat de eerste dag meten al laat zien</h2>
+  <p class="sub">De reistijdfeed loopt sinds vandaag mee. Dat is nog geen
+  kalibratie &mdash; daarvoor zijn meerdere losse dagen nodig &mdash; maar er is nu
+  voor het eerst een <b>gemeten</b> dagverloop in plaats van een geschat.</p>
+
+  <div class="card">
+    <div class="scroller"><canvas id="dagprof" role="img"
+      aria-label="Gemeten vertragingsfactor per wegklasse over het verloop van de dag"></canvas></div>
+    <p class="viz-note">Reistijd gedeeld door de snelste waarneming van diezelfde
+    dag op datzelfde traject. Zo telt de lengte van het traject niet mee. 2.625
+    trajecten, woensdag 2 september.</p>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Op het drukste moment</h3>
+    <p class="viz-note" style="margin:0 0 14px">Gemeten spreiding naast de
+    plaatshouder die nu in het model zit.</p>
+    <div class="scroller"><table id="piekTabel"><thead><tr>
+      <th>Wegklasse</th>
+      <th style="text-align:right">Helft haalt</th>
+      <th style="text-align:right">Kwart erger dan</th>
+      <th style="text-align:right">Tiende erger dan</th>
+      <th style="text-align:right">Plaatshouder</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="warn" style="margin-top:24px">
+    <div class="h">Congestie is geen enkel getal</div>
+    <p>Dit is de belangrijkste les van vandaag. Het model rekent met <b>één factor
+    per wegklasse</b>, en dat blijkt de middenmoot goed te vangen maar de staart
+    helemaal te missen. Op de snelweg loopt de helft van de trajecten x1,41 uit,
+    maar een kwart meer dan x2,3 en een tiende meer dan x3,8. De plaatshouder van
+    x2,00 zit dus <b>te hoog voor de gewone rit en veel te laag voor de slechte
+    rit</b>.</p>
+    <p style="margin-top:10px">Wat dat betekent voor de matrix: één set factoren
+    levert een geloofwaardige <em>typische</em> reistijd, geen betrouwbare
+    bovengrens. Wie op deze cijfers plant moet naast de mediaan een p90-variant
+    hebben. Die is met dezelfde metingen te maken &mdash; het is een tweede set
+    factoren, geen tweede meetopzet.</p>
+    <p style="margin-top:10px">Twee dingen die ik onderweg fout had. Ik dacht dat de
+    extreme waarden (tot x22 op de verbindingen bij het Terbregseplein) een
+    artefact van korte trajecten waren; dat is niet zo, korte trajecten zijn maar 5%
+    van het totale tijdverlies en juist de <em>lange</em> trajecten hebben de hoogste
+    mediaan. En één dag maakt een normale spits niet te onderscheiden van een
+    incident &mdash; dat 47% van de snelwegtrajecten om 16:49 boven x1,5 zat wijst op
+    een brede spits, maar zeker is dat pas na meer dagen.</p>
+  </div>
+</section>
+
+<section>
   <h2>Hoe representatief zijn de meetpunten?</h2>
   <p class="sub">De kalibratie is zo goed als de meetpunten waarop hij steunt.
   Het aantal punten zegt daarbij weinig &mdash; wat telt is of ze liggen op de

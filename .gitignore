@@ -9,6 +9,7 @@ out/ndw_site_blackouts.json
 out/ndw_factors.csv
 out/progress.json
 out/ndw_coverage.json
+out/dagprofiel.json
 out/scenario_punten.json
 out/matrix_scenario_*.csv
 data/rdw/

@@ -495,6 +495,95 @@ function drawKal(){
     + `en wordt het verschil zichtbaar als een lijn.`;
 }
 
+/* ================= gemeten dagprofiel ================= */
+const DP = __DAGPROFIEL__;
+const LIJN_LICHT = ["#2a78d6", "#eb6834", "#1baf7a"];
+const LIJN_DONKER = ["#3987e5", "#d95926", "#199e70"];
+const lijnKleur = i => (donker() ? LIJN_DONKER : LIJN_LICHT)[i];
+
+function drawDagprofiel(){
+  const W = 980, H = 320, L = 54, R = 108, T = 26, B = 44;
+  const c = sizeCanvas(document.getElementById("dagprof"), W, H);
+  const iw = W - L - R, ih = H - T - B;
+  const ink = css("--ink"), ink2 = css("--ink-2"), ink3 = css("--ink-3"),
+        line = css("--line");
+  c.clearRect(0, 0, W, H); c.fillStyle = css("--surface-viz"); c.fillRect(0, 0, W, H);
+
+  const alle = DP.profiel.flatMap(r => DP.klassen.map(k => r.klassen[k]?.mediaan)
+                                                 .filter(Boolean));
+  const hi = Math.max(1.5, Math.max(...alle) * 1.08), lo = 1.0;
+  const X = i => L + (DP.momenten.length === 1 ? iw / 2
+                    : i / (DP.momenten.length - 1) * iw);
+  const Y = v => T + ih - (v - lo) / (hi - lo) * ih;
+
+  c.strokeStyle = line; c.lineWidth = 1; c.fillStyle = ink3;
+  c.font = '400 10.5px "IBM Plex Mono", monospace';
+  c.textAlign = "right"; c.textBaseline = "middle";
+  for (let v = 1.0; v <= hi + 0.001; v += 0.1){
+    const y = Y(v) + .5;
+    c.beginPath(); c.moveTo(L, y); c.lineTo(L + iw, y); c.stroke();
+    c.fillText("x" + v.toFixed(1), L - 10, y);
+  }
+  c.textAlign = "center"; c.textBaseline = "top";
+  DP.momenten.forEach((t, i) => c.fillText(t.slice(11, 16), X(i), T + ih + 10));
+
+  /* De drie lijnen komen 's avonds samen, dus de labels aan de rechterkant
+     zouden op elkaar vallen. Eerst de gewenste hoogtes verzamelen, dan uit
+     elkaar duwen met een minimale tussenruimte. */
+  const labels = DP.klassen.map((kl, ki) => {
+    const pt = DP.profiel.map((r, i) => [i, r.klassen[kl]?.mediaan]).filter(p => p[1]);
+    return pt.length ? {kl, ki, i: pt[pt.length-1][0], y: Y(pt[pt.length-1][1])} : null;
+  }).filter(Boolean).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < labels.length; k++){
+    if (labels[k].y - labels[k-1].y < 15) labels[k].y = labels[k-1].y + 15;
+  }
+
+  DP.klassen.forEach((kl, ki) => {
+    const punten = DP.profiel.map((r, i) => [i, r.klassen[kl]?.mediaan])
+                             .filter(p => p[1]);
+    if (!punten.length) return;
+    c.strokeStyle = lijnKleur(ki); c.lineWidth = 2;
+    c.beginPath();
+    punten.forEach(([i, v], k) => k ? c.lineTo(X(i), Y(v)) : c.moveTo(X(i), Y(v)));
+    c.stroke();
+    punten.forEach(([i, v]) => {
+      c.beginPath(); c.arc(X(i), Y(v), 3.2, 0, 7);
+      c.fillStyle = lijnKleur(ki); c.fill();
+      c.strokeStyle = css("--surface-viz"); c.lineWidth = 1.6; c.stroke();
+    });
+    /* direct labelen: kleur alleen zou hier te veel moeten dragen */
+    const lab = labels.find(l => l.kl === kl);
+    if (lab){
+      const [li, lv] = punten[punten.length - 1];
+      c.strokeStyle = lijnKleur(ki); c.lineWidth = 1;
+      c.beginPath(); c.moveTo(X(li) + 4, Y(lv));
+      c.lineTo(X(li) + 9, lab.y); c.stroke();
+      c.fillStyle = ink2; c.font = '600 11.5px "IBM Plex Mono", monospace';
+      c.textAlign = "left"; c.textBaseline = "middle";
+      c.fillText(kl, X(li) + 13, lab.y);
+    }
+  });
+
+  c.fillStyle = ink3; c.font = '400 10.5px "IBM Plex Mono", monospace';
+  c.textAlign = "left"; c.textBaseline = "top";
+  c.fillText("vertragingsfactor", L, 6);
+}
+
+function vulPiek(){
+  const piek = DP.profiel.find(r => r.ts === DP.piek);
+  const tb = document.querySelector("#piekTabel tbody");
+  tb.innerHTML = DP.klassen.map(kl => {
+    const v = piek.klassen[kl];
+    if (!v) return "";
+    const ph = DP.plaatshouder[kl];
+    return `<tr><td>${kl}</td>
+      <td class="n">x${v.mediaan.toFixed(2)}</td>
+      <td class="n">x${v.p75.toFixed(2)}</td>
+      <td class="n">x${v.p90.toFixed(2)}</td>
+      <td class="n" style="color:var(--ink-3)">x${ph.toFixed(2)}</td></tr>`;
+  }).join("");
+}
+
 /* ================= tijdvak-keuze ================= */
 const ctl = document.getElementById("slotCtl");
 SLOTS.forEach(s => {
@@ -612,6 +701,7 @@ function drawHist(){
 function renderAll(){
   vulLegend(); drawSched(); vulVoortgang();
   drawNdw(); vulDekking(); drawKal();
+  drawDagprofiel(); vulPiek();
   document.getElementById("rampBar").style.background =
     `linear-gradient(90deg, ${ramp().join(",")})`;
   setOrigin(origin); drawBars(); drawHist();
