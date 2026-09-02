@@ -74,6 +74,38 @@ def parse_speeds(path):
     return out
 
 
+def parse_traveltimes(path):
+    """Gemeten reistijd per traject, plus de statische referentiewaarde.
+
+    Deze feed dekt wél de snelwegen: de snelheidsfeed bevat vrijwel alleen
+    inductielussen in de stad, terwijl hier ook de A16 en A20 in zitten. De
+    reistijd is omgekeerd evenredig met de snelheid, dus 1/duur werkt als
+    snelheidsmaat -- en omdat we alleen verhoudingen gebruiken maakt de schaal
+    niet uit.
+    """
+    out = {}
+    with gzip.open(path, "rb") as fh:
+        for _, el in iterparse(fh, events=("end",)):
+            if tag(el) != "siteMeasurements":
+                continue
+            sid = None
+            duren, n = [], 0
+            for c in el.iter():
+                if tag(c) == "measurementSiteReference":
+                    sid = c.get("id")
+                elif tag(c) == "travelTime":
+                    n = max(n, int(c.get("numberOfInputValuesUsed") or 0))
+                elif tag(c) == "duration" and c.text:
+                    duren.append(float(c.text))
+            # eerste duur = gemeten, tweede = statische referentie
+            if sid and duren and duren[0] > 0 and n > 0:
+                out[sid] = {"duur_s": round(duren[0], 1),
+                            "ref_s": round(duren[1], 1) if len(duren) > 1 else None,
+                            "n": n}
+            el.clear()
+    return out
+
+
 def main():
     sites = parse_sites(NDW / "measurement_current.xml.gz")
     speeds = parse_speeds(NDW / "trafficspeed.xml.gz")

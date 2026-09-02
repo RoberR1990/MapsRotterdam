@@ -145,26 +145,34 @@ blijft.
 
 `src/ndw_coverage.py` meet niet hoeveel meetpunten er zijn maar **welk deel van de
 werkelijk gereden meters** een meldend meetpunt binnen 150 m heeft, over 400
-willekeurige zoneparen. Uitkomst: **21%**.
+willekeurige zoneparen.
 
-| wegklasse | aandeel van de rit | dekking |
-|---|---|---|
-| stadsroute (S100-S123) | 44% | 26% |
-| gewone straat | 41% | 13% |
-| snelweg (A16, A20) | 14% | 27% |
+Op alleen de snelheidsfeed was dat **21%**, met de snelweg vrijwel onbedekt. Er
+blijkt echter een tweede open feed te zijn, `traveltime.xml.gz`, met reistijden per
+traject -- en die dekt de snelwegen wél. Met beide samen:
 
-Twee dingen die dit blootlegt:
+| wegklasse | aandeel van de rit | alleen snelheden | beide feeds |
+|---|---|---|---|
+| stadsroute (S100-S123) | 44% | 26% | **68%** |
+| gewone straat | 41% | 13% | **48%** |
+| snelweg (A16, A20) | 14% | 27% | **94%** |
+| **totaal** | | **21%** | **64%** |
 
-- Van de 5.969 meetpunten in de regio melden er maar **465** een snelheid in de
-  open feed, en dat zijn **allemaal inductielussen**. De punten die met floating
-  car data werken -- vooral langs de snelwegen -- publiceren daar niets. Van de 440
-  snelwegpunten melden er acht.
+Meldende meetpunten: 465 -> ruim 3.000.
+
+Twee dingen die dit blootlegde:
+
+- De snelheidsfeed bevat in deze regio **alleen inductielussen**; van de 440
+  snelwegpunten meldde er acht. De feeds vullen elkaar aan en je hebt ze allebei
+  nodig -- op één ervan bouwen geeft een vertekend beeld.
 - Het `naam`-veld van NDW is **niet de wegnaam** maar het soort meetapparaat
   (`lus`, `fcd`, `anpr`, meer smaken zijn er niet). `road_class()` keek daarnaar en
   gaf dus altijd "urban" terug; het wegnummer zit wél in de meetpunt-id.
 
-Gevolg: de stedelijke factoren zijn te kalibreren, de snelwegfactoren niet. Wil je
-die ook gemeten hebben, dan is een tweede bron nodig.
+Reistijden worden omgekeerd genomen (1/duur) zodat ze net als een snelheid
+meestijgen; er worden alleen verhoudingen gebruikt, dus de eenheid doet er niet
+toe. Ze gaan in een eigen dagbestand `ndw_traveltime/`, niet in het
+snelheidsbestand -- seconden en km/u door elkaar mengen vraagt om ongelukken.
 
 ## Van schatting naar meting
 

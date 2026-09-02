@@ -26,7 +26,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ndw import parse_speeds, OUT  # noqa: E402
+from ndw import parse_speeds, parse_traveltimes, OUT  # noqa: E402
 
 # CI zet dit naar de losse databranch-worktree; lokaal blijft het out/ndw_history
 HIST = Path(os.environ.get("NDW_HISTORY_DIR") or OUT / "ndw_history")
@@ -34,11 +34,18 @@ HIST = Path(os.environ.get("NDW_HISTORY_DIR") or OUT / "ndw_history")
 # ververst door src/disruptions.py blackouts
 BLACKOUTS = Path(os.environ.get("NDW_BLACKOUTS") or OUT / "ndw_site_blackouts.json")
 FEED = "https://opendata.ndw.nu/trafficspeed.xml.gz"
+# Tweede feed, met reistijden per traject. Onmisbaar: de snelheidsfeed bevat in
+# onze regio vrijwel alleen stedelijke inductielussen, terwijl hier ook de A16
+# en A20 in zitten. Met beide samen ligt er op 66% van de gereden meters een
+# meetpunt in plaats van op 21%, en op de snelweg op 99%.
+FEED_TT = "https://opendata.ndw.nu/traveltime.xml.gz"
 # Tijdvakken zijn Rotterdamse kloktijd. Expliciet vastleggen, want een
 # CI-runner staat op UTC en zou alles een of twee uur verschuiven.
 TZ = ZoneInfo("Europe/Amsterdam")
 
 VELDEN = ["ts", "site_id", "speed_kmh", "n", "verstoord"]
+VELDEN_TT = ["ts", "site_id", "duur_s", "ref_s", "n", "verstoord"]
+HIST_TT = Path(os.environ.get("NDW_TT_DIR") or HIST.parent / "ndw_traveltime")
 
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
 def slot_of(dt):
@@ -141,6 +148,34 @@ def zet_kolommen_klaar(path):
     print(f"   dagbestand omgezet: {oud} -> {VELDEN}")
 
 
+def schrijf_reistijden(now, region, verstoord):
+    """Tweede feed: reistijd per traject, in een eigen dagbestand.
+
+    Apart houden en niet in het snelheidsbestand mengen -- het zijn seconden en
+    geen km/u, en een schemawijziging aan het bestaande bestand heeft eerder al
+    stilletjes een filter uitgeschakeld.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".xml.gz") as tmp:
+        tmp.write(requests.get(FEED_TT, timeout=180).content)
+        tmp.flush()
+        tt = parse_traveltimes(tmp.name)
+    HIST_TT.mkdir(parents=True, exist_ok=True)
+    path = HIST_TT / f"{now:%Y-%m-%d}.csv.gz"
+    if not path.exists():
+        with gzip.open(path, "wt", newline="") as f:
+            csv.writer(f).writerow(VELDEN_TT)
+    k = 0
+    with gzip.open(path, "at", newline="") as f:
+        w = csv.writer(f)
+        for sid, m in tt.items():
+            if sid in region:
+                w.writerow([now.isoformat(timespec="minutes"), sid, m["duur_s"],
+                            m["ref_s"] if m["ref_s"] is not None else "",
+                            m["n"], int(sid in verstoord)])
+                k += 1
+    print(f"   reistijdfeed: {k} trajecten in de regio bijgeschreven")
+
+
 def collect():
     now_local = datetime.now(TZ)
     if slot_of(now_local) is None:
@@ -158,6 +193,7 @@ def collect():
     now = now_local
 
     verstoord = verstoorde_locaties(now)
+    schrijf_reistijden(now, region, verstoord)
     path = HIST / f"{now:%Y-%m-%d}.csv.gz"
     zet_kolommen_klaar(path)
     with gzip.open(path, "at", newline="") as f:
@@ -182,21 +218,33 @@ def aggregate():
     # dubbele rijen die dat ene moment zwaarder laten wegen.
     gezien = set()
     rows = overgeslagen = dubbel = 0
-    for path in sorted(HIST.glob("*.csv.gz")):
-        with gzip.open(path, "rt", newline="") as f:
-            for r in csv.DictReader(f):
-                slot = slot_of(datetime.fromisoformat(r["ts"]).astimezone(TZ))
-                sleutel = (r["ts"], r["site_id"])
-                if sleutel in gezien:
-                    dubbel += 1
-                    continue
-                gezien.add(sleutel)
-                if r.get("verstoord") == "1":
-                    overgeslagen += 1
-                    continue
-                if slot and int(r["n"]) > 0:
-                    per_site[r["site_id"]][slot].append(float(r["speed_kmh"]))
-                    rows += 1
+    def lees(paden, waarde):
+        """Beide feeds leveren hetzelfde soort getal: iets dat met de snelheid
+        meestijgt. Alleen verhoudingen worden gebruikt, dus de eenheid doet er
+        niet toe -- voor reistijden is 1/duur daarom bruikbaar als snelheidsmaat."""
+        nonlocal rows, overgeslagen, dubbel
+        for path in sorted(paden):
+            with gzip.open(path, "rt", newline="") as f:
+                for r in csv.DictReader(f):
+                    slot = slot_of(datetime.fromisoformat(r["ts"]).astimezone(TZ))
+                    sleutel = (r["ts"], r["site_id"])
+                    if sleutel in gezien:
+                        dubbel += 1
+                        continue
+                    gezien.add(sleutel)
+                    if r.get("verstoord") == "1":
+                        overgeslagen += 1
+                        continue
+                    v = waarde(r)
+                    if slot and v is not None:
+                        per_site[r["site_id"]][slot].append(v)
+                        rows += 1
+
+    lees(HIST.glob("*.csv.gz"),
+         lambda r: float(r["speed_kmh"]) if int(r["n"]) > 0 else None)
+    lees(HIST_TT.glob("*.csv.gz"),
+         lambda r: (3600 / float(r["duur_s"])
+                    if int(r["n"]) > 0 and float(r["duur_s"]) > 0 else None))
 
     region = sites_in_region()
     per_class = defaultdict(list)

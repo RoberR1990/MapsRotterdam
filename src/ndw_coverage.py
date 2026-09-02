@@ -7,6 +7,7 @@ in de buurt heeft. Dat is het getal dat telt voor de kalibratie.
 """
 import csv
 import glob
+import os
 import gzip
 import json
 import math
@@ -35,12 +36,21 @@ def meters(lat1, lon1, lat2, lon2):
 
 
 def live_sites(histdir):
-    """Meetpunten die in onze eigen historie ooit een snelheid meldden."""
+    """Meetpunten die in onze eigen historie ooit iets meldden.
+
+    Beide feeds tellen mee: de snelheidsfeed (inductielussen, vooral stedelijk)
+    en de reistijdfeed (trajecten, inclusief de A16 en A20). Alleen de eerste
+    nemen geeft een veel te somber beeld van de dekking.
+    """
     live = set()
-    for p in sorted(glob.glob(str(Path(histdir) / "*.csv.gz"))):
-        with gzip.open(p, "rt", newline="") as f:
-            for r in csv.DictReader(f):
-                live.add(r["site_id"])
+    mappen = [Path(histdir), Path(histdir).parent / "ndw_traveltime"]
+    if os.environ.get("NDW_TT_DIR"):
+        mappen.append(Path(os.environ["NDW_TT_DIR"]))
+    for d in mappen:
+        for p in sorted(glob.glob(str(d / "*.csv.gz"))):
+            with gzip.open(p, "rt", newline="") as f:
+                for r in csv.DictReader(f):
+                    live.add(r["site_id"])
     return live
 
 

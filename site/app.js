@@ -417,6 +417,16 @@ function vulDekking(){
       <span class="n"><b>${Math.round(v.dekking * 100)}%</b> gedekt<br>
         <span style="color:var(--ink-3)">${Math.round(v.aandeel_route * 100)}% van de rit</span></span>
     </div>`).join("");
+  const snelweg = C.dekking.per_klasse["snelweg"];
+  const straat = C.dekking.per_klasse["gewone straat"];
+  document.getElementById("cvWinst").innerHTML =
+    `NDW publiceert echter een <b>tweede open feed met reistijden per traject</b>, `
+    + `en die dekt de snelwegen wél. Samen komen we op <b>${C.n_live.toLocaleString("nl-NL")} `
+    + `meldende punten</b> en <b>${Math.round(C.dekking.gemiddeld * 100)}% van de gereden `
+    + `meters</b>, met ${Math.round(snelweg.dekking * 100)}% op de snelweg. Beide feeds `
+    + `worden nu verzameld. Wat overblijft is de gewone straat: daar ligt op `
+    + `${Math.round(straat.dekking * 100)}% van de meters een meetpunt, en de rest wordt `
+    + `afgeleid uit de wegklasse.`;
   document.getElementById("ndwLegend").innerHTML =
     `<span class="lab"><span class="swatch" style="background:${css("--accent-2")}"></span>meldt snelheid (${C.n_live})</span>
      <span class="lab"><span class="swatch" style="background:${css("--ink-3")}; opacity:.45"></span>stil (${C.n_totaal - C.n_live})</span>

@@ -202,23 +202,20 @@
       </div>
     </div>
     <div class="legend" id="ndwLegend"></div>
-    <p class="viz-note">De grijze kettingen volgen de snelwegen en havenwegen:
-    daar staan de meeste meetpunten, maar ze publiceren geen snelheid in de open
-    feed. De oranje punten die dat wel doen liggen verspreid door de stad.</p>
+    <p class="viz-note">Oranje is alles wat iets meldt, uit beide feeds samen.
+    De grijze punten die overblijven zijn stil &mdash; vooral losse lussen in
+    woonstraten en op het haventerrein.</p>
   </div>
 
   <div class="warn" style="margin-top:24px">
-    <div class="h">Dit is de zwakste schakel</div>
-    <p>Van de 5.969 meetpunten in de regio melden er maar <b>465</b> ook
-    daadwerkelijk een snelheid in de open feed. Alle 465 zijn <b>inductielussen in
-    het wegdek</b>; de punten langs de snelwegen werken met floating car data en
-    publiceren daar niets. Van de 440 snelwegpunten in de regio melden er
-    <b>acht</b>. Onze ritten lopen voor 14% over de A16 en A20 &mdash; juist waar de
-    spits het hardst toeslaat &mdash; en daar hebben we dus bijna geen meting.
-    Gemiddeld heeft <b>21% van de gereden meters</b> een meetpunt in de buurt. Dat
-    is genoeg om een stedelijk patroon uit af te leiden, niet om de ring mee te
-    kalibreren. Reken erop dat de snelwegfactoren geschat blijven tenzij je er een
-    tweede bron bij haalt.</p>
+    <div class="h">Er zijn twee feeds nodig, niet één</div>
+    <p>De snelheidsfeed alleen geeft een misleidend beeld: daarin melden maar
+    <b>465</b> van de 5.969 punten iets, allemaal <b>inductielussen in het wegdek</b>,
+    en van de 440 snelwegpunten precies acht. Op die basis had 21% van de gereden
+    meters een meting, en de A16 en A20 vrijwel niets &mdash; juist waar de spits het
+    hardst toeslaat.</p>
+    <p style="margin-top:10px" id="cvWinst">NDW publiceert echter een <b>tweede open
+    feed met reistijden per traject</b>, en die dekt de snelwegen wél.</p>
   </div>
 </section>
 
@@ -317,18 +314,22 @@
     <div class="blok">
       <h3><span class="nr">05</span> De verkeersmetingen die dat gaan vervangen</h3>
       <dl>
-        <dt>Bron</dt><dd><b>NDW</b>, de nationale databank verkeersgegevens. Die
-        publiceert elke minuut de gemeten snelheid op duizenden meetpunten. Gratis,
-        geen sleutel. In de regio Rotterdam liggen er 5.969.</dd>
+        <dt>Bron</dt><dd><b>NDW</b>, de nationale databank verkeersgegevens, via
+        <b>twee</b> open feeds die elke minuut ververst worden. De ene geeft gemeten
+        snelheden op inductielussen (vooral stedelijk), de andere reistijden per
+        traject (inclusief de A16 en A20). Gratis, geen sleutel. Alleen de eerste
+        nemen dekt de snelwegen niet.</dd>
         <dt>Aanname</dt><dd>NDW geeft open alleen het beeld van <em>nu</em> &mdash;
         geschiedenis moet je zelf opbouwen. Daarom draait er een sampler. We nemen aan
         dat twee à drie weken genoeg is om een betrouwbaar weekpatroon te zien, en dat
         die weken niet toevallig raar zijn (vakantie, staking, extreem weer).</dd>
         <dt>Berekening</dt><dd>Per meetpunt en per tijdvak nemen we de <b>middelste
-        gemeten snelheid</b>. Als &ldquo;vrije doorstroom&rdquo; geldt wat dat punt op
-        een rustige doordeweekse avond haalt. De spitsopslag is dan simpelweg: rustige
-        snelheid gedeeld door spitssnelheid. Minder dan vijf metingen in een tijdvak
-        en we rekenen niets uit.</dd>
+        waarde</b>. Reistijden worden omgekeerd genomen (1 gedeeld door de duur), want
+        dat stijgt net als een snelheid mee &mdash; en omdat alleen verhoudingen
+        gebruikt worden maakt de eenheid niet uit. Als &ldquo;vrije doorstroom&rdquo;
+        geldt wat dat punt op een rustige doordeweekse avond haalt. De spitsopslag is
+        dan simpelweg: rustige waarde gedeeld door spitswaarde. Minder dan vijf
+        metingen in een tijdvak en we rekenen niets uit.</dd>
         <dt class="straks">Straks</dt><dd class="straks">Deze getallen schuiven in de
         tabel van blok 04. Daarna zijn de reistijden op deze pagina gemeten in plaats
         van geschat.</dd>
