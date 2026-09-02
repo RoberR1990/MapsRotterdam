@@ -141,6 +141,38 @@ blijft.
 
   Zet die neer en de routine kan uit.
 
+## Hoe representatief zijn de meetpunten?
+
+`src/ndw_coverage.py` meet niet hoeveel meetpunten er zijn maar **welk deel van de
+werkelijk gereden meters** een meldend meetpunt binnen 150 m heeft, over 400
+willekeurige zoneparen. Uitkomst: **21%**.
+
+| wegklasse | aandeel van de rit | dekking |
+|---|---|---|
+| stadsroute (S100-S123) | 44% | 26% |
+| gewone straat | 41% | 13% |
+| snelweg (A16, A20) | 14% | 27% |
+
+Twee dingen die dit blootlegt:
+
+- Van de 5.969 meetpunten in de regio melden er maar **465** een snelheid in de
+  open feed, en dat zijn **allemaal inductielussen**. De punten die met floating
+  car data werken -- vooral langs de snelwegen -- publiceren daar niets. Van de 440
+  snelwegpunten melden er acht.
+- Het `naam`-veld van NDW is **niet de wegnaam** maar het soort meetapparaat
+  (`lus`, `fcd`, `anpr`, meer smaken zijn er niet). `road_class()` keek daarnaar en
+  gaf dus altijd "urban" terug; het wegnummer zit wél in de meetpunt-id.
+
+Gevolg: de stedelijke factoren zijn te kalibreren, de snelwegfactoren niet. Wil je
+die ook gemeten hebben, dan is een tweede bron nodig.
+
+## Van schatting naar meting
+
+`src/matrix_history.py` legt bij elke factorwijziging een versie vast: mediaan en
+p90 per tijdvak, plus of de factoren geschat of gemeten waren. Een vingerafdruk van
+de factortabel voorkomt dubbele versies. Zo blijft zichtbaar wat de kalibratie
+precies verschoven heeft.
+
 ## Verstoringen: werkzaamheden en afsluitingen
 
 NDW publiceert ook de geplande wegwerkzaamheden, evenementen en afsluitingen
@@ -196,6 +228,8 @@ src/build_slots.py     per tijdvak een eigen OSRM-dataset + router
 src/build_matrices.py  alle matrices -> out/matrix_all_<set>.csv + webexport
 src/ndw.py             NDW-meetlocaties en -snelheden
 src/progress.py        meetrooster en voortgang -> out/progress.json
+src/ndw_coverage.py    dekking van de meetpunten over de echte routes
+src/matrix_history.py  matrixversies vastleggen -> out/matrix_history_*.json
 src/ndw_events.py      NDW-situatiefeeds (werkzaamheden, afsluitingen, bruggen)
 src/disruptions.py     blackouts voor de sampler / punten voor een scenario
 src/build_scenario.py  scenariomatrix voor een moment, met afsluitingen

@@ -63,5 +63,11 @@ SLOTS = {
     },
 }
 
+# Waar de factoren hieronder vandaan komen. matrix_history.py legt dit vast bij
+# elke matrixversie, zodat later terug te zien is welke cijfers geschat waren en
+# welke gemeten. Zet bron op "meting" zodra aggregate ze heeft vervangen.
+KALIBRATIE = {"bron": "schatting", "datum": None, "metingen": 0,
+              "toelichting": "vuistregels voor stadsverkeer, niet voor Rotterdam"}
+
 BASE_PORT = 5001
 PORTS = {slot: BASE_PORT + i for i, slot in enumerate(SLOTS)}

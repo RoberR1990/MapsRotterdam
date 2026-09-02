@@ -14,6 +14,7 @@ import csv
 import gzip
 import json
 import os
+import re
 import statistics
 import sys
 import tempfile
@@ -207,7 +208,7 @@ def aggregate():
         free = sorted(ref)[int(len(ref) * 0.85)]
         if free < 5:
             continue
-        klasse = road_class(region.get(sid, {}).get("naam", ""))
+        klasse = road_class(sid)
         for slot, vals in slots.items():
             if len(vals) < 5:
                 continue
@@ -233,14 +234,18 @@ def aggregate():
               f"(n={len(vals)} locaties)")
 
 
-def road_class(naam):
-    """Grove wegklasse uit de NDW-locatienaam (A12, N470, stedelijk)."""
-    n = naam.upper()
-    if n.startswith("A") and n[1:2].isdigit():
-        return "motorway"
-    if n.startswith("N") and n[1:2].isdigit():
-        return "trunk"
-    return "urban"
+def road_class(site_id):
+    """Grove wegklasse uit het wegnummer in de meetpunt-id.
+
+    Let op: het naam-veld van NDW is NIET de wegnaam maar het soort meetapparaat
+    ('lus', 'fcd', 'anpr') -- daar zijn er maar drie van. Het wegnummer zit wel
+    in de id, bijvoorbeeld RWS09_A16R_hm23.2 of PZH03_N219_h-1.
+    """
+    if re.search(r"(^|[_-])A\d{1,3}([_-]|$|[A-Za-z])", site_id):
+        return "snelweg"
+    if re.search(r"(^|[_-])N\d{1,3}([_-]|$|[A-Za-z])", site_id):
+        return "provinciaal"
+    return "stedelijk"
 
 
 if __name__ == "__main__":
