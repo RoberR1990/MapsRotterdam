@@ -82,6 +82,18 @@ zonder gaten: `maandag_vroeg` / `_ochtendspits` / `_dal` / `_avondspits` /
 te labelen houd je beide opties open: uit aparte reeksen kun je later alsnog een
 gecombineerd ma-vr cijfer rekenen, andersom niet.
 
+### Voortgang bekijken
+
+    NDW_HISTORY_DIR=/pad/naar/ndw-data/ndw_history python3 src/progress.py
+
+Leidt het meetrooster af uit `slot_of` -- afgetast in plaats van overgetypt, dus
+rooster en code kunnen niet uit elkaar lopen -- en zet dat samen met de stand van
+de historie in `out/progress.json` voor de webweergave.
+
+De dunne tijdvakken bepalen het tempo: `maandag_vroeg` en `vrijdag_vroeg` krijgen
+maar een meting per week en hebben dus vijf weken nodig voor de ondergrens van
+vijf, terwijl `werkdag_dal` er vijftien per week binnenhaalt.
+
 ## Waar draait de sampler?
 
 Niet in een chat-sessie en niet op je laptop: `.github/workflows/ndw-sampler.yml`
@@ -183,6 +195,7 @@ src/timeslots.py       tijdvakken + congestiefactoren   <- hier kalibreer je
 src/build_slots.py     per tijdvak een eigen OSRM-dataset + router
 src/build_matrices.py  alle matrices -> out/matrix_all_<set>.csv + webexport
 src/ndw.py             NDW-meetlocaties en -snelheden
+src/progress.py        meetrooster en voortgang -> out/progress.json
 src/ndw_events.py      NDW-situatiefeeds (werkzaamheden, afsluitingen, bruggen)
 src/disruptions.py     blackouts voor de sampler / punten voor een scenario
 src/build_scenario.py  scenariomatrix voor een moment, met afsluitingen
