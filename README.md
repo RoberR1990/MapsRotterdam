@@ -173,6 +173,19 @@ p90 per tijdvak, plus of de factoren geschat of gemeten waren. Een vingerafdruk 
 de factortabel voorkomt dubbele versies. Zo blijft zichtbaar wat de kalibratie
 precies verschoven heeft.
 
+## De gepubliceerde pagina
+
+De bron staat in `site/` (head.html, body.html, app.js). `src/build_page.py` zet de
+laatste gegevens erin en schrijft het bestand naar het vaste pad waar de artifact
+op gepubliceerd is -- publiceren naar een ander pad maakt een nieuwe pagina in
+plaats van dat het de bestaande bijwerkt.
+
+    NDW_HISTORY_DIR=/pad/naar/ndw_history python3 src/progress.py
+    python3 src/build_page.py
+
+De pagina is een **momentopname**: hij haalt zelf niets op. Een dagelijkse routine
+draait deze twee stappen en publiceert opnieuw.
+
 ## Verstoringen: werkzaamheden en afsluitingen
 
 NDW publiceert ook de geplande wegwerkzaamheden, evenementen en afsluitingen
@@ -226,6 +239,7 @@ src/matrix.py          vrije-doorstroommatrix (referentie)
 src/timeslots.py       tijdvakken + congestiefactoren   <- hier kalibreer je
 src/build_slots.py     per tijdvak een eigen OSRM-dataset + router
 src/build_matrices.py  alle matrices -> out/matrix_all_<set>.csv + webexport
+site/ + build_page.py  bron van de gepubliceerde pagina, met de data erin
 src/ndw.py             NDW-meetlocaties en -snelheden
 src/progress.py        meetrooster en voortgang -> out/progress.json
 src/ndw_coverage.py    dekking van de meetpunten over de echte routes
