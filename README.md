@@ -75,6 +75,27 @@ Dinsdag t/m donderdag houdt smalle vensters aan (ochtendspits 07:30-09:00, dal
 10:00-15:00, avondspits 16:00-18:30, avond 20:00-23:00) -- schoudertijd erbij
 zou het spitsbeeld verdunnen.
 
+`nacht_referentie` (01:00-05:00, **elke dag**) is geen tijdvak waarvoor we een
+matrix maken, maar de noemer van alle andere. Een congestiefactor is
+`mediaan(snelheid in tijdvak) / p85(snelheid in de referentie)`, dus alles
+schaalt mee met wat je als vrije doorstroom aanneemt. De eerste opzet gebruikte
+daarvoor `werkdag_avond` (20:00-23:00), simpelweg omdat we 's nachts niets
+ophaalden -- maar 20 uur is nog geen leeg wegennet, en dat drukt elke gemeten
+factor structureel richting 1. Vandaar 01:00-05:00, en niet 00:00, zodat het
+uitgaansverkeer van vrijdag- en zaterdagnacht er grotendeels buiten valt.
+
+`aggregate` kiest de referentie zelf: het neemt van `nacht_referentie` en
+`werkdag_avond` degene die de meeste meetlocaties dekt, en zet erbij welke dat
+was. Zolang de nachten nog niet binnen zijn valt het dus terug op de avond, en
+zodra de nacht die inhaalt schakelt het vanzelf over -- geen drempel om met de
+hand bij te stellen.
+
+Let op wat dit **niet** repareert: de verhouding tússen twee tijdvakken
+verandert er niet door. Beide factoren delen door dezelfde noemer, dus als de
+avondspits nu 6% langzamer meet dan de avond, blijft dat zo. De nachtreferentie
+zet het **niveau** goed -- en dat is precies wat telt, want de factor wordt
+losgelaten op een reistijd die uit de maximumsnelheid volgt.
+
 Maandag en vrijdag krijgen **eigen** tijdvakken over de volle dag, 06:00-23:00
 zonder gaten: `maandag_vroeg` / `_ochtendspits` / `_dal` / `_avondspits` /
 `_avond`, en idem voor vrijdag. Die dagen wijken af van een doordeweekse di-do
@@ -110,6 +131,11 @@ niets tegen. Vandaar `MIN_DAGEN = 3` naast `MIN_METINGEN = 5`.
 Gevolg voor het tempo: di-do haalt 3 dagen per week en is na een week rond, weekend
 na anderhalve week, maar **maandag en vrijdag worden maar 1x per week gemeten en
 hebben dus 3 weken nodig**. Die bepalen wanneer alles klaar is.
+
+De nachtreferentie is de uitzondering: die meet elke dag en is dus na drie
+nachten rond. Dat is bewust, want zonder referentie levert `aggregate` voor
+geen enkel tijdvak een factor -- het is het enige tijdvak waar de rest op
+wacht.
 
 ## Waar draait de sampler?
 

@@ -59,6 +59,14 @@ HIST_TT = Path(os.environ.get("NDW_TT_DIR") or HIST.parent / "ndw_traveltime")
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
 def slot_of(dt):
     wd, h = dt.weekday(), dt.hour + dt.minute / 60
+
+    # De vrije-doorstroomreferentie. Alle factoren delen hierdoor, dus dit is
+    # het enige tijdvak dat elke dag meet: hoe eerder het vol is, hoe eerder de
+    # rest bruikbaar wordt. 1-5 uur en niet 0-5, zodat het uitgaansverkeer van
+    # vrijdag- en zaterdagnacht er grotendeels buiten valt.
+    if 1 <= h < 5:
+        return "nacht_referentie"
+
     if wd >= 5:
         return "weekend_middag" if 12 <= h < 17 else None
 
@@ -263,8 +271,17 @@ def aggregate():
         return (len(paren) >= MIN_METINGEN
                 and len({d for d, _ in paren}) >= MIN_DAGEN)
 
+    # Welke referentie? De nacht is de enige echt vrije doorstroom die we meten;
+    # de avond van 20-23 uur is een noodgreep uit de tijd dat we 's nachts niets
+    # ophaalden. Zodra de nacht meer locaties dekt schakelen we vanzelf over --
+    # geen drempel om met de hand bij te stellen.
+    def dekking(slot):
+        return sum(1 for sl in per_site.values() if bruikbaar(sl.get(slot, [])))
+
+    ref_slot = max(("nacht_referentie", "werkdag_avond"), key=dekking)
+
     for sid, slots in per_site.items():
-        ref = slots.get("werkdag_avond")
+        ref = slots.get(ref_slot)
         if not ref or not bruikbaar(ref):   # zonder rustige referentie geen factor
             continue
         rw = sorted(v for _, v in ref)
@@ -278,7 +295,8 @@ def aggregate():
             f = round(statistics.median(v for _, v in paren) / free, 3)
             out.append({"site_id": sid, "klasse": klasse, "slot": slot,
                         "n_metingen": len(paren),
-                        "n_dagen": len({d for d, _ in paren}), "factor": f})
+                        "n_dagen": len({d for d, _ in paren}), "factor": f,
+                        "referentie": ref_slot})
             per_class[(klasse, slot)].append(f)
 
     if not out:
@@ -295,6 +313,7 @@ def aggregate():
     print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren "
           f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij, "
           f"{dubbel} dubbele rijen genegeerd)")
+    print(f"  referentie: {ref_slot} ({dekking(ref_slot)} locaties bruikbaar)")
     for (klasse, slot), vals in sorted(per_class.items()):
         print(f"  {klasse:<10} {slot:<22} factor {statistics.median(vals):.2f} "
               f"(n={len(vals)} locaties)")

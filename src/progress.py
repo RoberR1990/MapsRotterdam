@@ -28,6 +28,7 @@ DOEL_DAGEN = MIN_DAGEN
 LABELS = {
     "vroeg": "Vroege ochtend", "ochtendspits": "Ochtendspits", "dal": "Dal",
     "avondspits": "Avondspits", "avond": "Avond", "middag": "Middag",
+    "referentie": "Nacht",
 }
 DAGEN = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
@@ -125,7 +126,8 @@ def main():
             "doel_dagen": DOEL_DAGEN,
             "weken_nodig": round(max(0, DOEL_DAGEN - gehad) / dpw, 1) if dpw else None,
             "groep": {"werkdag": "di–do", "maandag": "maandag",
-                      "vrijdag": "vrijdag", "weekend": "weekend"}[groep],
+                      "vrijdag": "vrijdag", "weekend": "weekend",
+                      "nacht": "elke dag"}[groep],
             "soort": LABELS.get(soort, soort),
             "per_week": per_week[key],
             "momenten": len(momenten.get(key, ())),
@@ -150,10 +152,10 @@ def main():
     print(f"{len(rst)} vuringen per week over {len(slots)} tijdvakken")
     print(f"historie: {stats['bruikbaar']} bruikbaar, {stats['dubbel']} dubbel, "
           f"{stats['verstoord']} verstoord")
-    print(f"\n{'groep':<9}{'tijdvak':<17}{'dagen':>7}{'/wk':>5}{'nog':>7}  metingen")
+    print(f"\n{'groep':<11}{'tijdvak':<17}{'dagen':>7}{'/wk':>5}{'nog':>7}  metingen")
     for s in sorted(slots, key=lambda x: (x["weken_nodig"] or 99, x["groep"])):
         nog = "klaar" if s["dagen"] >= DOEL_DAGEN else f"{s['weken_nodig']} wk"
-        print(f"  {s['groep']:<8}{s['soort']:<17}{s['dagen']:>4}/{DOEL_DAGEN}"
+        print(f"  {s['groep']:<9}{s['soort']:<17}{s['dagen']:>4}/{DOEL_DAGEN}"
               f"{s['dagen_per_week']:>5}{nog:>8}  {s['momenten']:>3}")
 
 
