@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+  <style>
+    body { margin:0; background:#f4f6f7; color:#11151a;
+      font-family:"Source Serif 4",Georgia,serif; font-size:15px; line-height:1.55; }
+    a { color:#2a78d6; } a:hover { color:#1c5cab; }
+    .disp { font-family:Archivo,"Helvetica Neue",Arial,sans-serif; }
+    .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+    .tag { font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.14em;
+      text-transform:uppercase; color:#8b939d; }
+    .card { background:#fff; border:1px solid #dde2e7; border-radius:3px; }
+    .ph { background:#eef1f3; border:1px solid #dde2e7; border-radius:3px;
+      display:flex; align-items:center; justify-content:center;
+      font-family:"IBM Plex Mono",monospace; font-size:11px; color:#8b939d;
+      letter-spacing:.06em; text-align:center; padding:8px; }
+  </style>
+</helmet>
+
+<div style="width:1200px; min-height:1140px; background:#f4f6f7; padding:0 0 40px">
+
+  <div style="display:flex; align-items:baseline; gap:12px; padding:26px 40px 0">
+    <div class="disp" style="font-size:19px; font-weight:700; letter-spacing:-.02em">Optie C &mdash; Dossier</div>
+    <div class="tag">vier korte pagina&rsquo;s in plaats van één lange</div>
+  </div>
+  <p style="margin:8px 40px 22px; max-width:74ch; color:#525b66; font-size:13.5px">
+    Geen scroll van drie meter maar vier pagina&rsquo;s die elk op één scherm passen.
+    Je kiest waar je heen wilt in plaats van erlangs te scrollen. Hieronder de
+    pagina Matrix; de andere drie hebben dezelfde koppenbalk.
+  </p>
+
+  <div class="card" style="margin:0 40px; overflow:hidden">
+
+    <!-- dossierkop -->
+    <div style="padding:16px 26px 0; background:#fff; border-bottom:1px solid #dde2e7">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:13px">
+        <div style="display:flex; align-items:baseline; gap:12px">
+          <div class="disp" style="font-size:14px; font-weight:600; letter-spacing:-.01em">Rotterdam Reistijdmatrix</div>
+          <div class="mono" style="font-size:10.5px; color:#8b939d">bijgewerkt 4 sep 2026</div>
+        </div>
+        <div class="mono" style="font-size:10.5px; padding:3px 9px; border-radius:2px;
+          background:#fdf4e3; color:#a86a00">ongekalibreerd &middot; 4/15</div>
+      </div>
+      <div style="display:flex; gap:26px">
+        <div style="padding-bottom:11px; border-bottom:2px solid #8b939d">
+          <div class="disp" style="font-size:13px; font-weight:600; color:#525b66">Voorblad</div></div>
+        <div style="padding-bottom:11px; border-bottom:2px solid #2a78d6">
+          <div class="disp" style="font-size:13px; font-weight:600; color:#11151a">Matrix</div></div>
+        <div style="padding-bottom:11px; border-bottom:2px solid transparent">
+          <div class="disp" style="font-size:13px; font-weight:600; color:#8b939d">Kalibratie</div></div>
+        <div style="padding-bottom:11px; border-bottom:2px solid transparent">
+          <div class="disp" style="font-size:13px; font-weight:600; color:#8b939d">Methode</div></div>
+        <div style="padding-bottom:11px; border-bottom:2px solid transparent">
+          <div class="disp" style="font-size:13px; font-weight:600; color:#8b939d">Bronnen</div></div>
+      </div>
+    </div>
+
+    <!-- pagina-inhoud -->
+    <div style="padding:26px 30px 30px; background:#fff">
+      <div class="disp" style="font-size:25px; font-weight:600; letter-spacing:-.02em; margin-bottom:5px">De matrix</div>
+      <div style="color:#525b66; font-size:14px; max-width:66ch; margin-bottom:20px">
+        Reistijd van elke zone naar elke andere, in minuten. Donkerder is langer.
+        Klik een cel voor de rit, of kies een zone om alleen die rij te zien.
+      </div>
+
+      <div style="display:flex; gap:6px; margin-bottom:16px; align-items:center">
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          background:#2a78d6; color:#fff">werkdag avondspits</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">ochtendspits</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">dal</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">avond</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">weekend</div>
+        <div style="flex-grow:1"></div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">mediaan</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#8b939d">p90</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">CSV &darr;</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:minmax(0,1fr) 268px; gap:18px">
+        <div class="ph" style="height:430px">99 &times; 99 heatmap<br>vult de pagina</div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="ph" style="height:120px; background:#fff; flex-direction:column; gap:6px">
+            <div class="tag">Geselecteerde rit</div>
+            <div class="disp" style="font-size:28px; font-weight:600; color:#11151a">14,6 min</div>
+            <div style="font-family:'Source Serif 4',serif; font-size:12px; color:#525b66">
+              Centrum-Noord &rarr; Hoogvliet</div>
+          </div>
+          <div class="ph" style="height:130px">kaartje &mdash; alleen als je erom vraagt<br><span style="opacity:.75">dichtgeklapt by default</span></div>
+          <div class="ph" style="height:160px">verdeling van alle ritten<br>in dit tijdvak</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mono" style="margin:16px 40px 0; font-size:11px; color:#8b939d; line-height:1.7">
+    <span style="color:#2a78d6">+</span> elke pagina heeft één taak; matrix krijgt het hele scherm; makkelijk uit te breiden &nbsp;
+    <span style="color:#eb6834">&minus;</span> je moet klikken om het verhaal te vinden &mdash; minder geschikt om iemand mee te overtuigen
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

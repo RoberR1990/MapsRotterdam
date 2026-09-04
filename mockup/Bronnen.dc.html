@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+  <style>
+    body { margin:0; background:#f4f6f7; color:#11151a;
+      font-family:"Source Serif 4",Georgia,serif; font-size:15px; line-height:1.55; }
+    a { color:#2a78d6; } a:hover { color:#1c5cab; }
+    .disp { font-family:Archivo,"Helvetica Neue",Arial,sans-serif; }
+    .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+    .tag { font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.14em;
+      text-transform:uppercase; color:#8b939d; }
+    .card { background:#fff; border:1px solid #dde2e7; border-radius:3px; }
+    th { font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em;
+      text-transform:uppercase; color:#8b939d; text-align:left; font-weight:400;
+      padding:0 14px 9px 0; border-bottom:1px solid #dde2e7; }
+    td { padding:11px 14px 11px 0; border-bottom:1px solid #eef1f3;
+      vertical-align:top; font-size:13.5px; }
+    .naam { font-family:Archivo,sans-serif; font-weight:600; font-size:13.5px; }
+    .wat { color:#525b66; }
+  </style>
+</helmet>
+
+<div style="width:1200px; min-height:940px; background:#f4f6f7; padding:0 0 40px">
+
+  <div style="display:flex; align-items:baseline; gap:12px; padding:26px 40px 0">
+    <div class="disp" style="font-size:19px; font-weight:700; letter-spacing:-.02em">De bronnenpagina</div>
+    <div class="tag">van de hoofdpagina af, op zijn eigen plek</div>
+  </div>
+  <p style="margin:8px 40px 22px; max-width:74ch; color:#525b66; font-size:13.5px">
+    Nu een uitklapblok onderaan een lange pagina. Als eigen pagina is het bruikbaar:
+    één tabel met wat elke bron levert, hoe vaak hij binnenkomt en waar de haken zitten.
+    De haakjes zijn het punt &mdash; dat is wat je terug wilt kunnen zoeken.
+  </p>
+
+  <div class="card" style="margin:0 40px; padding:28px 30px 26px">
+    <div class="disp" style="font-size:25px; font-weight:600; letter-spacing:-.02em; margin-bottom:5px">Waar dit vandaan komt</div>
+    <div style="color:#525b66; font-size:14px; max-width:70ch; margin-bottom:24px">
+      Acht bronnen, allemaal open, geen sleutel of abonnement. Elke rij zegt ook
+      wat er níet klopt aan de bron &mdash; die kanttekeningen zijn de reden dat deze
+      pagina bestaat.
+    </div>
+
+    <table style="width:100%; border-collapse:collapse">
+      <thead><tr>
+        <th style="width:19%">Bron</th>
+        <th style="width:25%">Levert</th>
+        <th style="width:13%">Ritme</th>
+        <th style="width:43%">Kanttekening</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="naam">OpenStreetMap</td>
+          <td class="wat">Het wegennet, via BBBike-extract</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">eenmalig</td>
+          <td class="wat">Geofabrik wordt door de proxy geblokkeerd</td>
+        </tr>
+        <tr>
+          <td class="naam">OSRM</td>
+          <td class="wat">De routes zelf, per tijdvak een eigen dataset</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">bij herbouw</td>
+          <td class="wat">De snelhedentabel schalen werkt níet &mdash; <span class="mono" style="font-size:12px">maxspeed</span> uit OSM overschrijft hem. Er zit een eigen handler in car.lua</td>
+        </tr>
+        <tr>
+          <td class="naam">RDW parkeerregister</td>
+          <td class="wat">De 99 zonegrenzen</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">eenmalig</td>
+          <td class="wat">Coördinaten in RD New, omgezet naar WGS84</td>
+        </tr>
+        <tr>
+          <td class="naam">NDW snelheden</td>
+          <td class="wat">Gemeten snelheid én intensiteit per meetlus</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">elk uur</td>
+          <td class="wat">Vrijwel alleen stedelijke lussen; het naamveld is het soort apparaat, niet de weg</td>
+        </tr>
+        <tr>
+          <td class="naam">NDW reistijden</td>
+          <td class="wat">Reistijd per traject, inclusief snelwegen</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">elk uur</td>
+          <td class="wat">De meegeleverde referentiereistijd is géén vrije doorstroom: 10% langzamer dan een rustige avond</td>
+        </tr>
+        <tr>
+          <td class="naam">NDW planningsfeed</td>
+          <td class="wat">Wegwerkzaamheden en evenementen</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">dagelijks</td>
+          <td class="wat">De echte tijden staan in <span class="mono" style="font-size:12px">perioden</span>, niet in start/eind &mdash; een weekmarkt loopt anders twee jaar door</td>
+        </tr>
+        <tr>
+          <td class="naam">NDW matrixborden</td>
+          <td class="wat">Afgekruiste stroken en snelheidsbeperkingen</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">elk uur</td>
+          <td class="wat">Locatie en beeld staan in aparte records, gekoppeld op uuid; op één record kijken geeft nul treffers</td>
+        </tr>
+        <tr>
+          <td class="naam">Open-Meteo</td>
+          <td class="wat">Neerslag, wind, zicht per uur</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">elk uur</td>
+          <td class="wat">Eén punt voor de hele stad; een bui kan lokaal zijn</td>
+        </tr>
+        <tr>
+          <td class="naam">Rijksoverheid</td>
+          <td class="wat">Schoolvakanties en feestdagen</td>
+          <td class="mono" style="color:#8b939d; font-size:12px">jaarlijks bij</td>
+          <td class="wat">Rotterdam is regio Midden; de zomervakantie liep t/m 30 augustus, dus onze eerste week is de eerste schoolweek</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:26px">
+      <div style="background:#eef1f3; border:1px solid #dde2e7; border-radius:3px; padding:16px 18px">
+        <div class="tag" style="margin-bottom:8px">Wat hier ook hoort</div>
+        <div style="font-size:13.5px; color:#525b66">
+          De licenties, de code op GitHub, en de losse bestanden om zelf mee te
+          rekenen &mdash; matrix als CSV, zones als GeoJSON.
+        </div>
+      </div>
+      <div style="background:#eef1f3; border:1px solid #dde2e7; border-radius:3px; padding:16px 18px">
+        <div class="tag" style="margin-bottom:8px">Wat we nog niet weten</div>
+        <div style="font-size:13.5px; color:#525b66">
+          Of de reistijden kloppen. Alles wat getoetst is, is interne
+          consistentie &mdash; er ligt nog geen externe meting naast.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -15,3 +15,7 @@ out/matrix_scenario_*.csv
 data/rdw/
 out/rotterdam-reistijdmatrix.html
 __pycache__/
+
+# Gezaaide ontwerpcanvas: 2,5 MB gegenereerde editor-payload. De bron zijn de
+# .dc.html-bestanden ernaast; het canvas wordt daaruit opnieuw opgebouwd.
+mockup/reistijdmatrix-herindeling.html

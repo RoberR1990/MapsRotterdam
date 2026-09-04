@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+  <style>
+    body { margin:0; background:#f4f6f7; color:#11151a;
+      font-family:"Source Serif 4",Georgia,serif; font-size:15px; line-height:1.55; }
+    a { color:#2a78d6; } a:hover { color:#1c5cab; }
+    .disp { font-family:Archivo,"Helvetica Neue",Arial,sans-serif; }
+    .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+    .tag { font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.14em;
+      text-transform:uppercase; color:#8b939d; }
+    .card { background:#fff; border:1px solid #dde2e7; border-radius:3px; }
+    .ph { background:#eef1f3; border:1px solid #dde2e7; border-radius:3px;
+      display:flex; align-items:center; justify-content:center;
+      font-family:"IBM Plex Mono",monospace; font-size:11px; color:#8b939d;
+      letter-spacing:.06em; text-align:center; padding:8px; }
+  </style>
+</helmet>
+
+<div style="width:1200px; min-height:1140px; background:#f4f6f7; padding:0 0 40px">
+
+  <!-- optie-label -->
+  <div style="display:flex; align-items:baseline; gap:12px; padding:26px 40px 0">
+    <div class="disp" style="font-size:19px; font-weight:700; letter-spacing:-.02em">Optie A &mdash; Drie hoofdstukken</div>
+    <div class="tag">minimale ingreep &middot; blijft een verhaal om te lezen</div>
+  </div>
+  <p style="margin:8px 40px 22px; max-width:74ch; color:#525b66; font-size:13.5px">
+    Elf secties worden er drie. De pagina blijft één scroll, maar met een vaste
+    hoofdstuknavigatie die meeloopt. Kaart verhuist naar een klein paneel binnen
+    de matrix; bronvermelding gaat van de pagina af.
+  </p>
+
+  <!-- de schets -->
+  <div class="card" style="margin:0 40px; overflow:hidden">
+
+    <!-- sticky hoofdstukbalk -->
+    <div style="display:flex; align-items:center; justify-content:space-between;
+      gap:18px; padding:11px 22px; border-bottom:1px solid #dde2e7; background:#fff">
+      <div class="disp" style="font-size:13.5px; font-weight:600; letter-spacing:-.01em">Rotterdam Reistijdmatrix</div>
+      <div style="display:flex; gap:6px">
+        <div class="mono" style="font-size:11px; padding:5px 12px; border-radius:2px;
+          background:#2a78d6; color:#fff">1 &middot; Matrix</div>
+        <div class="mono" style="font-size:11px; padding:5px 12px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">2 &middot; Kalibratie</div>
+        <div class="mono" style="font-size:11px; padding:5px 12px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">3 &middot; Methode</div>
+      </div>
+      <div class="mono" style="font-size:11px; color:#8b939d">Bronnen &rarr;</div>
+    </div>
+
+    <!-- klein voorblad, ingedikt -->
+    <div style="padding:30px 34px 26px; border-bottom:1px solid #dde2e7; background:#fff">
+      <div class="tag" style="margin-bottom:12px">Open data &middot; 99 parkeerzones &middot; 15 tijdvakken</div>
+      <div class="disp" style="font-size:38px; font-weight:700; letter-spacing:-.028em;
+        line-height:1.04; margin-bottom:12px">Hoe lang doe je erover,<br>van zone naar zone?</div>
+      <div style="color:#525b66; max-width:60ch; font-size:15px">
+        Een reistijdmatrix voor Rotterdam, gebouwd op OpenStreetMap, OSRM en NDW.
+        Vier van de vijftien tijdvakken zijn begonnen met meten.
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+        background:#dde2e7; border:1px solid #dde2e7; border-radius:3px; margin-top:24px">
+        <div style="background:#fff; padding:13px 16px">
+          <div class="tag" style="margin-bottom:5px">Zones</div>
+          <div class="disp" style="font-size:24px; font-weight:600">99</div></div>
+        <div style="background:#fff; padding:13px 16px">
+          <div class="tag" style="margin-bottom:5px">Metingen</div>
+          <div class="disp" style="font-size:24px; font-weight:600">72.038</div></div>
+        <div style="background:#fff; padding:13px 16px">
+          <div class="tag" style="margin-bottom:5px">Tijdvakken klaar</div>
+          <div class="disp" style="font-size:24px; font-weight:600">4<span style="font-size:15px; color:#525b66">/15</span></div></div>
+        <div style="background:#fff; padding:13px 16px">
+          <div class="tag" style="margin-bottom:5px">Compleet</div>
+          <div class="disp" style="font-size:24px; font-weight:600">21 sep</div></div>
+      </div>
+    </div>
+
+    <!-- hoofdstuk 1 -->
+    <div style="padding:28px 34px; background:#f4f6f7; border-bottom:1px solid #dde2e7">
+      <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:4px">
+        <div class="mono" style="font-size:11px; color:#2a78d6">01</div>
+        <div class="disp" style="font-size:23px; font-weight:600; letter-spacing:-.018em">De matrix</div>
+      </div>
+      <div style="color:#525b66; font-size:13.5px; margin-bottom:18px">
+        Kies een tijdvak en een herkomstzone. Alles wat je nodig hebt staat hier.
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:14px">
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          background:#2a78d6; color:#fff">werkdag avondspits</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">ochtendspits</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">dal</div>
+        <div class="mono" style="font-size:10.5px; padding:5px 11px; border-radius:2px;
+          border:1px solid #c8cfd6; color:#525b66">weekend</div>
+      </div>
+      <div style="display:grid; grid-template-columns:minmax(0,2.1fr) minmax(0,1fr); gap:16px">
+        <div class="ph" style="height:290px">99 &times; 99 heatmap &mdash; het middelpunt<br>klik een cel voor de rit</div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="ph" style="height:150px">kaartje, klein<br><span style="opacity:.75">(was een hele sectie)</span></div>
+          <div class="ph" style="height:126px">top-10 bestemmingen<br>vanaf de gekozen zone</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- hoofdstuk 2 -->
+    <div style="padding:28px 34px; background:#fff; border-bottom:1px solid #dde2e7">
+      <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:4px">
+        <div class="mono" style="font-size:11px; color:#2a78d6">02</div>
+        <div class="disp" style="font-size:23px; font-weight:600; letter-spacing:-.018em">De kalibratie</div>
+      </div>
+      <div style="color:#525b66; font-size:13.5px; margin-bottom:18px">
+        Van schatting naar meting: hoe ver zijn we, en wat verandert er aan de cijfers?
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px">
+        <div class="ph" style="height:170px">voortgang per tijdvak</div>
+        <div class="ph" style="height:170px">gemeten factor<br>vs. plaatshouder</div>
+        <div class="ph" style="height:170px">dagprofiel</div>
+      </div>
+    </div>
+
+    <!-- hoofdstuk 3 -->
+    <div style="padding:28px 34px; background:#f4f6f7">
+      <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:4px">
+        <div class="mono" style="font-size:11px; color:#2a78d6">03</div>
+        <div class="disp" style="font-size:23px; font-weight:600; letter-spacing:-.018em">Hoe het gemaakt is</div>
+      </div>
+      <div style="color:#525b66; font-size:13.5px; margin-bottom:16px">
+        Aannames, dekking van de meetpunten, en wat de methode wel en niet levert.
+      </div>
+      <div class="ph" style="height:112px">uitklapbare uitleg &mdash; dicht bij aankomst</div>
+    </div>
+
+  </div>
+
+  <div class="mono" style="margin:16px 40px 0; font-size:11px; color:#8b939d; line-height:1.7">
+    <span style="color:#2a78d6">+</span> weinig risico, herkenbaar, snel te bouwen &nbsp;
+    <span style="color:#eb6834">&minus;</span> nog steeds één lange scroll; de matrix moet je nog steeds opzoeken
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

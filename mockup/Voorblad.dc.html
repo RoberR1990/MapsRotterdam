@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+  <style>
+    body { margin:0; background:#f4f6f7; color:#11151a;
+      font-family:"Source Serif 4",Georgia,serif; font-size:15px; line-height:1.55; }
+    a { color:#2a78d6; } a:hover { color:#1c5cab; }
+    .disp { font-family:Archivo,"Helvetica Neue",Arial,sans-serif; }
+    .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+    .tag { font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.14em;
+      text-transform:uppercase; color:#8b939d; }
+    .card { background:#fff; border:1px solid #dde2e7; border-radius:3px; }
+  </style>
+</helmet>
+
+<div style="width:1200px; min-height:800px; background:#f4f6f7; padding:0 0 40px">
+
+  <div style="display:flex; align-items:baseline; gap:12px; padding:26px 40px 0">
+    <div class="disp" style="font-size:19px; font-weight:700; letter-spacing:-.02em">Het voorblad</div>
+    <div class="tag">hoort bij alle drie de opties</div>
+  </div>
+  <p style="margin:8px 40px 22px; max-width:74ch; color:#525b66; font-size:13.5px">
+    Klein gehouden: één zin over wat dit is, vier getallen, en één knop naar de
+    matrix. Geen uitleg &mdash; die staat verderop. Wat er wél op moet is de
+    waarschuwing dat de cijfers nog niet gekalibreerd zijn; dat is het eerste dat
+    iemand moet weten.
+  </p>
+
+  <div class="card" style="margin:0 40px; padding:56px 60px 48px">
+    <div class="tag" style="margin-bottom:20px">OpenStreetMap &middot; OSRM &middot; RDW &middot; NDW &nbsp;&mdash;&nbsp; alles open data</div>
+
+    <div class="disp" style="font-size:56px; font-weight:700; letter-spacing:-.032em;
+      line-height:1.0; margin-bottom:20px; max-width:17ch">
+      Hoe lang doe je erover, van zone naar zone?</div>
+
+    <div style="font-size:18px; color:#525b66; max-width:58ch; margin-bottom:34px">
+      Reistijden tussen de <b style="color:#11151a; font-weight:600">99 betaalde
+      parkeerzones</b> van Rotterdam, voor vijftien momenten in de week. Gebouwd
+      zonder één euro API-kosten.
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:38px">
+      <div class="disp" style="font-size:14px; font-weight:600; padding:11px 22px;
+        border-radius:2px; background:#2a78d6; color:#fff">Naar de matrix</div>
+      <div class="disp" style="font-size:14px; font-weight:600; padding:11px 22px;
+        border-radius:2px; border:1px solid #c8cfd6; color:#525b66">Hoe het gemeten wordt</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:11px; padding:11px 15px;
+      background:#fdf4e3; border:1px solid #f0dfb8; border-radius:3px;
+      max-width:74ch; margin-bottom:34px">
+      <div class="mono" style="font-size:10.5px; letter-spacing:.1em;
+        text-transform:uppercase; color:#a86a00; white-space:nowrap">Let op</div>
+      <div style="font-size:13.5px; color:#525b66">
+        De congestiefactoren zijn nu nog schattingen. Er wordt sinds 1 september
+        gemeten; <b style="color:#11151a; font-weight:600">4 van de 15 tijdvakken</b>
+        zijn begonnen, alles compleet rond 21 september.
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+      background:#dde2e7; border:1px solid #dde2e7; border-radius:3px">
+      <div style="background:#fff; padding:17px 20px">
+        <div class="tag" style="margin-bottom:7px">Parkeerzones</div>
+        <div class="disp" style="font-size:31px; font-weight:600; letter-spacing:-.02em">99</div>
+        <div style="font-size:12.5px; color:#8b939d">9.702 zonecombinaties</div></div>
+      <div style="background:#fff; padding:17px 20px">
+        <div class="tag" style="margin-bottom:7px">Tijdvakken</div>
+        <div class="disp" style="font-size:31px; font-weight:600; letter-spacing:-.02em">15</div>
+        <div style="font-size:12.5px; color:#8b939d">ma t/m zo, 6&ndash;23 uur</div></div>
+      <div style="background:#fff; padding:17px 20px">
+        <div class="tag" style="margin-bottom:7px">Metingen</div>
+        <div class="disp" style="font-size:31px; font-weight:600; letter-spacing:-.02em">72.038</div>
+        <div style="font-size:12.5px; color:#8b939d">groeit elk uur</div></div>
+      <div style="background:#fff; padding:17px 20px">
+        <div class="tag" style="margin-bottom:7px">Kosten</div>
+        <div class="disp" style="font-size:31px; font-weight:600; letter-spacing:-.02em">&euro;&thinsp;0</div>
+        <div style="font-size:12.5px; color:#8b939d">alleen open bronnen</div></div>
+    </div>
+  </div>
+
+  <div class="mono" style="margin:16px 40px 0; font-size:11px; color:#8b939d; line-height:1.7">
+    de vier getallen zijn een voorstel &mdash; zeg maar welke jij hier wilt zien
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
