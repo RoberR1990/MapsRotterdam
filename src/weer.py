@@ -20,10 +20,12 @@ import json
 import os
 import sys
 import urllib.parse
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from net import haal as haal_url  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"
@@ -47,8 +49,7 @@ def haal(dagen=7):
         "past_days": dagen, "forecast_days": 1,
         "timezone": "Europe/Amsterdam",
     })
-    with urllib.request.urlopen(f"{API}?{vraag}", timeout=60) as r:
-        h = json.load(r)["hourly"]
+    h = json.loads(haal_url(f"{API}?{vraag}"))["hourly"]
     uit = {}
     for i, t in enumerate(h["time"]):
         rij = [h[m][i] for m in METINGEN]

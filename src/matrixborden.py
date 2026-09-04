@@ -27,11 +27,13 @@ import os
 import re
 import sys
 import tempfile
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from xml.etree.ElementTree import iterparse
 from zoneinfo import ZoneInfo
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from net import haal as haal_url  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"
@@ -157,8 +159,7 @@ def hindert_traject(borden, site_id, marge_km=MARGE_KM):
 def collect():
     now = datetime.now(TZ)
     with tempfile.NamedTemporaryFile(suffix=".xml.gz") as tmp:
-        with urllib.request.urlopen(FEED, timeout=120) as r:
-            tmp.write(r.read())
+        tmp.write(haal_url(FEED, timeout=120))
         tmp.flush()
         rijen = parse(tmp.name)
     HIST.mkdir(parents=True, exist_ok=True)
