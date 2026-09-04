@@ -18,7 +18,7 @@ import re
 import statistics
 import sys
 import tempfile
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
@@ -227,15 +227,53 @@ def collect():
           f" ({v} bij werkzaamheden, worden bij aggregate overgeslagen)")
 
 
-def aggregate():
-    """Vrije-doorstroomreferentie per meetlocatie = p85 in de nachtelijke uren."""
+def road_class(site_id):
+    """Grove wegklasse uit het wegnummer in de meetpunt-id.
+
+    Let op: het naam-veld van NDW is NIET de wegnaam maar het soort meetapparaat
+    ('lus', 'fcd', 'anpr') -- daar zijn er maar drie van. Het wegnummer zit wel
+    in de id, bijvoorbeeld RWS09_A16R_hm23.2 of PZH03_N219_h-1.
+    """
+    if re.search(r"(^|[_-])A\d{1,3}([_-]|$|[A-Za-z])", site_id):
+        return "snelweg"
+    if re.search(r"(^|[_-])N\d{1,3}([_-]|$|[A-Za-z])", site_id):
+        return "provinciaal"
+    return "stedelijk"
+
+
+def aggregate(ref_keuze="auto"):
+    """Congestiefactor per meetlocatie en tijdvak: gemeten / vrije doorstroom.
+
+    Voor de vrije doorstroom zijn er twee soorten referentie, en ze zijn geen
+    van beide vanzelfsprekend de juiste:
+
+    * `ndw` -- de statische referentiereistijd die NDW zelf per traject
+      meelevert in de reistijdfeed. Meteen beschikbaar, geen wachttijd, en
+      onafhankelijk van ons eigen meetrooster. Nadeel: we weten niet precies
+      hoe NDW hem afleidt, en hij bestaat alleen voor trajecten (dus niet voor
+      de losse inductielussen uit de snelheidsfeed).
+    * een tijdvak uit onze eigen historie (`nacht_referentie`, of `werkdag_avond`
+      zolang de nachten nog niet binnen zijn) -- zelf gemeten en dus navolgbaar,
+      maar het kost dagen voor het bruikbaar is en 's nachts melden veel
+      stedelijke lussen niets.
+
+    Nagerekend op 2.500 trajecten waar allebei bestaat: NDW's statische
+    referentie is *langzamer* dan wat wij 's avonds meten (mediaan 0,90). Op de
+    snelweg levert hij factoren boven 1 op -- avondverkeer rijdt dan harder dan
+    de "referentie". Hij is dus geen vrije doorstroom, eerder een typische
+    reistijd. Daarom is hij hier een **toetssteen en geen productiereferentie**:
+    `auto` blijft bij onze eigen tijdvakken, en `ndw` is er om tegenaan te
+    houden. Ze door elkaar gebruiken zou locaties met een NDW-referentie een
+    systematisch ~11% hogere factor geven dan hun buren.
+    """
     per_site = defaultdict(lambda: defaultdict(list))
+    ndw_vrij = defaultdict(list)   # site -> statische referentie als snelheidsmaat
     # Dezelfde meetlocatie op hetzelfde tijdstip mag maar een keer meetellen.
     # Twee triggers naast elkaar, of een handmatige run, leveren anders
     # dubbele rijen die dat ene moment zwaarder laten wegen.
     gezien = set()
     rows = overgeslagen = dubbel = 0
-    def lees(paden, waarde):
+    def lees(paden, waarde, vrij=None):
         """Beide feeds leveren hetzelfde soort getal: iets dat met de snelheid
         meestijgt. Alleen verhoudingen worden gebruikt, dus de eenheid doet er
         niet toe -- voor reistijden is 1/duur daarom bruikbaar als snelheidsmaat."""
@@ -252,41 +290,62 @@ def aggregate():
                     if r.get("verstoord") == "1":
                         overgeslagen += 1
                         continue
+                    if vrij:
+                        v0 = vrij(r)
+                        if v0 is not None:
+                            ndw_vrij[r["site_id"]].append(v0)
                     v = waarde(r)
                     if slot and v is not None:
                         dag = datetime.fromisoformat(r["ts"]).astimezone(TZ).date()
                         per_site[r["site_id"]][slot].append((dag, v))
                         rows += 1
 
+    def getal(r, veld):
+        try:
+            x = float(r[veld])
+        except (KeyError, TypeError, ValueError):
+            return None
+        return x if x > 0 else None
+
     lees(HIST.glob("*.csv.gz"),
          lambda r: float(r["speed_kmh"]) if int(r["n"]) > 0 else None)
     lees(HIST_TT.glob("*.csv.gz"),
          lambda r: (3600 / float(r["duur_s"])
-                    if int(r["n"]) > 0 and float(r["duur_s"]) > 0 else None))
+                    if int(r["n"]) > 0 and float(r["duur_s"]) > 0 else None),
+         vrij=lambda r: (3600 / getal(r, "ref_s")
+                         if getal(r, "ref_s") else None))
 
-    region = sites_in_region()
     per_class = defaultdict(list)
     out = []
     def bruikbaar(paren):
         return (len(paren) >= MIN_METINGEN
                 and len({d for d, _ in paren}) >= MIN_DAGEN)
 
-    # Welke referentie? De nacht is de enige echt vrije doorstroom die we meten;
-    # de avond van 20-23 uur is een noodgreep uit de tijd dat we 's nachts niets
-    # ophaalden. Zodra de nacht meer locaties dekt schakelen we vanzelf over --
-    # geen drempel om met de hand bij te stellen.
+    # De nacht is de enige echt vrije doorstroom die we zelf meten; werkdag_avond
+    # was een noodgreep uit de tijd dat we 's nachts niets ophaalden. Zodra de
+    # nacht meer locaties dekt schakelen we vanzelf over -- geen drempel om met
+    # de hand bij te stellen.
     def dekking(slot):
         return sum(1 for sl in per_site.values() if bruikbaar(sl.get(slot, [])))
 
     ref_slot = max(("nacht_referentie", "werkdag_avond"), key=dekking)
 
-    for sid, slots in per_site.items():
-        ref = slots.get(ref_slot)
-        if not ref or not bruikbaar(ref):   # zonder rustige referentie geen factor
-            continue
+    def vrije_doorstroom(sid, slots):
+        """(waarde, naam) van de referentie voor deze locatie, of (None, None)."""
+        if ref_keuze == "ndw":
+            if not ndw_vrij.get(sid):
+                return None, None
+            return statistics.median(ndw_vrij[sid]), "ndw_statisch"
+        ref = slots.get(ref_keuze if ref_keuze != "auto" else ref_slot)
+        if not ref or not bruikbaar(ref):
+            return None, None
         rw = sorted(v for _, v in ref)
-        free = rw[int(len(rw) * 0.85)]
-        if free <= 0:
+        return rw[int(len(rw) * 0.85)], (ref_keuze if ref_keuze != "auto"
+                                         else ref_slot)
+
+    for sid, slots in per_site.items():
+        free, ref_naam = vrije_doorstroom(sid, slots)
+        if not free or free <= 0:
             continue
         klasse = road_class(sid)
         for slot, paren in slots.items():
@@ -296,7 +355,7 @@ def aggregate():
             out.append({"site_id": sid, "klasse": klasse, "slot": slot,
                         "n_metingen": len(paren),
                         "n_dagen": len({d for d, _ in paren}), "factor": f,
-                        "referentie": ref_slot})
+                        "referentie": ref_naam})
             per_class[(klasse, slot)].append(f)
 
     if not out:
@@ -313,26 +372,48 @@ def aggregate():
     print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren "
           f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij, "
           f"{dubbel} dubbele rijen genegeerd)")
-    print(f"  referentie: {ref_slot} ({dekking(ref_slot)} locaties bruikbaar)")
+    gebruikt = Counter(r["referentie"] for r in out)
+    print("  referentie: " + ", ".join(f"{k} ({v} rijen)"
+                                       for k, v in gebruikt.most_common()))
+    vergelijk_referenties(per_site, ndw_vrij, ref_slot, bruikbaar)
     for (klasse, slot), vals in sorted(per_class.items()):
         print(f"  {klasse:<10} {slot:<22} factor {statistics.median(vals):.2f} "
               f"(n={len(vals)} locaties)")
 
 
-def road_class(site_id):
-    """Grove wegklasse uit het wegnummer in de meetpunt-id.
+def vergelijk_referenties(per_site, ndw_vrij, ref_slot, bruikbaar):
+    """Zijn de twee vrije-doorstroomreferenties het met elkaar eens?
 
-    Let op: het naam-veld van NDW is NIET de wegnaam maar het soort meetapparaat
-    ('lus', 'fcd', 'anpr') -- daar zijn er maar drie van. Het wegnummer zit wel
-    in de id, bijvoorbeeld RWS09_A16R_hm23.2 of PZH03_N219_h-1.
+    Alleen te beantwoorden op locaties waar ze allebei bestaan. Een verhouding
+    boven 1 betekent dat NDW's statische referentie sneller is dan wat wij
+    's nachts meten -- dan onderschat onze eigen referentie de vrije doorstroom,
+    en daarmee de congestie.
     """
-    if re.search(r"(^|[_-])A\d{1,3}([_-]|$|[A-Za-z])", site_id):
-        return "snelweg"
-    if re.search(r"(^|[_-])N\d{1,3}([_-]|$|[A-Za-z])", site_id):
-        return "provinciaal"
-    return "stedelijk"
+    paren = []
+    for sid, slots in per_site.items():
+        if not ndw_vrij.get(sid):
+            continue
+        eigen = slots.get(ref_slot)
+        if not eigen or not bruikbaar(eigen):
+            continue
+        rw = sorted(v for _, v in eigen)
+        p85 = rw[int(len(rw) * 0.85)]
+        if p85 > 0:
+            paren.append(statistics.median(ndw_vrij[sid]) / p85)
+    if len(paren) < 10:
+        print(f"  vergelijking referenties: nog te weinig overlap "
+              f"({len(paren)} locaties met allebei)")
+        return
+    paren.sort()
+    print(f"  ndw_statisch / {ref_slot}: mediaan "
+          f"{statistics.median(paren):.2f} (p10 {paren[len(paren)//10]:.2f}, "
+          f"p90 {paren[9*len(paren)//10]:.2f}, n={len(paren)})")
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "collect"
-    {"collect": collect, "aggregate": aggregate}[cmd]()
+    if cmd == "aggregate":
+        # optioneel: auto (standaard) | ndw | nacht_referentie | werkdag_avond
+        aggregate(sys.argv[2] if len(sys.argv) > 2 else "auto")
+    else:
+        {"collect": collect}[cmd]()

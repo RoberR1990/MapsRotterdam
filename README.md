@@ -86,7 +86,25 @@ uitgaansverkeer van vrijdag- en zaterdagnacht er grotendeels buiten valt.
 
 `aggregate` kiest de referentie zelf: het neemt van `nacht_referentie` en
 `werkdag_avond` degene die de meeste meetlocaties dekt, en zet erbij welke dat
-was. Zolang de nachten nog niet binnen zijn valt het dus terug op de avond, en
+was.
+
+Er is een derde kandidaat die we al binnenkrijgen zonder er iets voor te doen:
+de **statische referentiereistijd die NDW zelf per traject meelevert** in de
+reistijdfeed (`ref_s`, gevuld op 46.180 van 47.993 rijen op een gewone dag).
+Verleidelijk, want hij is er meteen en hij is onafhankelijk van ons meetrooster.
+Nagerekend op 2.500 trajecten waar hij naast onze eigen avondmeting te leggen
+is, blijkt hij daar alleen niet geschikt voor:
+
+    ndw_statisch / werkdag_avond: mediaan 0,90 (p10 0,78, p90 1,19, n=2500)
+
+NDW's referentie is dus 10% *langzamer* dan wat wij op een rustige avond meten,
+en op de snelweg levert hij factoren boven 1 op -- avondverkeer zou dan harder
+rijden dan de vrije doorstroom. Het is geen vrije doorstroom maar eerder een
+typische reistijd. Daarom is hij hier een **toetssteen en geen
+productiereferentie**: `python3 src/sample_ndw.py aggregate ndw` rekent ermee
+zodat je het verschil ziet, maar de matrix gebruikt hem niet. Ze door elkaar
+gebruiken zou trajecten met een NDW-referentie een systematisch ~11% hogere
+factor geven dan de inductielussen ernaast. Zolang de nachten nog niet binnen zijn valt het dus terug op de avond, en
 zodra de nacht die inhaalt schakelt het vanzelf over -- geen drempel om met de
 hand bij te stellen.
 
