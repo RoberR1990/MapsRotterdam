@@ -10,6 +10,9 @@ out/ndw_factors.csv
 out/progress.json
 out/ndw_coverage.json
 out/dagprofiel.json
+out/analyse.json
+out/covariaten.csv
+out/covariaten.json
 out/scenario_punten.json
 out/matrix_scenario_*.csv
 data/rdw/
