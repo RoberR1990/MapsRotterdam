@@ -3,34 +3,149 @@
 <style>
 :root{
   color-scheme:light;
-  --ground:#f4f6f7; --card:#fff; --sunken:#eef1f3;
-  --ink:#11151a; --ink-2:#525b66; --ink-3:#8b939d;
-  --line:#dde2e7; --line-2:#c8cfd6;
-  --accent:#2a78d6; --accent-2:#eb6834; --warn:#a86a00; --warn-bg:#fdf4e3;
+  /* Kleuren uit de huisstijl van gemeente Rotterdam, overgenomen uit hun eigen
+     stylesheet op rotterdam.nl (--color-green-01 t/m --color-gray-11). Het
+     lettertype van de huisstijl (Bolder) is niet vrij te laden, dus daarvoor
+     staat hier de bestaande zetting. */
+  --ground:#eff4f6; --card:#fff; --sunken:#e4eef1;
+  --ink:#001905; --ink-2:#536165; --ink-3:#7c8b90;
+  --line:#dbe7ea; --line-2:#cad6da;
+  --accent:#006e32; --accent-2:#ef7d00; --warn:#d99600; --warn-bg:#fdf6e3;
+  --groen-licht:#e1efe2; --groen-rand:#99cca0;
   --surface-viz:#fff;
-  --ramp:#cde2fb,#b7d3f6,#9ec5f4,#86b6ef,#6da7ec,#5598e7,#3987e5,#2a78d6,#256abf,#1c5cab,#184f95,#104281,#0d366b;
-  --shadow:0 1px 2px rgba(16,26,38,.06),0 8px 24px -16px rgba(16,26,38,.28);
+  /* De kleurschaal van de matrix. Eén tint, en de lichtheid loopt in dertien
+     gelijke stappen van .955 naar .255 in OKLCH -- met de losse huisstijltinten
+     lag het middenstuk te dicht op elkaar en werd de matrix een vlakte. */
+  --ramp:#ddf9e0,#b3efb9,#90e198,#71d17a,#54c05e,#3aae45,#249b2e,#12881a,#0b750c,#0f6107,#154e0d,#1a3a15,#172813;
+  --shadow:0 1px 2px rgba(0,25,5,.06),0 8px 24px -16px rgba(0,25,5,.30);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
-  --ground:#13161a; --card:#1a1e23; --sunken:#16191e;
-  --ink:#eef1f4; --ink-2:#a3acb6; --ink-3:#767f8a;
-  --line:#2a3037; --line-2:#3a424b;
-  --accent:#3987e5; --accent-2:#d95926; --warn:#e0a01f; --warn-bg:#2a2213;
-  --surface-viz:#1a1e23;
-  --ramp:#0d366b,#104281,#184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6,#cde2fb;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+  --ground:#07120c; --card:#0f1c14; --sunken:#0b1710;
+  --ink:#eaf2ec; --ink-2:#9db0a4; --ink-3:#748379;
+  --line:#1e2f24; --line-2:#2b402f;
+  --accent:#11a03e; --accent-2:#ef7d00; --warn:#edb500; --warn-bg:#241f0c;
+  --groen-licht:#12241a; --groen-rand:#27452f;
+  --surface-viz:#0f1c14;
+  --ramp:#172813,#1a3a15,#154e0d,#0f6107,#0b750c,#12881a,#249b2e,#3aae45,#54c05e,#71d17a,#90e198,#b3efb9,#ddf9e0;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -16px rgba(0,0,0,.8);
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --ground:#13161a; --card:#1a1e23; --sunken:#16191e;
-  --ink:#eef1f4; --ink-2:#a3acb6; --ink-3:#767f8a;
-  --line:#2a3037; --line-2:#3a424b;
-  --accent:#3987e5; --accent-2:#d95926; --warn:#e0a01f; --warn-bg:#2a2213;
-  --surface-viz:#1a1e23;
-  --ramp:#0d366b,#104281,#184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6,#cde2fb;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+  --ground:#07120c; --card:#0f1c14; --sunken:#0b1710;
+  --ink:#eaf2ec; --ink-2:#9db0a4; --ink-3:#748379;
+  --line:#1e2f24; --line-2:#2b402f;
+  --accent:#11a03e; --accent-2:#ef7d00; --warn:#edb500; --warn-bg:#241f0c;
+  --groen-licht:#12241a; --groen-rand:#27452f;
+  --surface-viz:#0f1c14;
+  --ramp:#172813,#1a3a15,#154e0d,#0f6107,#0b750c,#12881a,#249b2e,#3aae45,#54c05e,#71d17a,#90e198,#b3efb9,#ddf9e0;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -16px rgba(0,0,0,.8);
 }
+
+
+/* ---- paginabalk en tabbladen ---- */
+.topbar{position:sticky; top:0; z-index:40; display:flex; align-items:center;
+  gap:20px; padding:9px 0; margin:0 0 26px; background:var(--ground);
+  border-bottom:1px solid var(--line)}
+.merk{display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--ink);
+  flex-shrink:0}
+.merkvlak{width:15px; height:15px; background:var(--accent); border-radius:2px}
+.merknaam{font-family:Archivo,sans-serif; font-weight:600; font-size:14px;
+  letter-spacing:-.01em; white-space:nowrap}
+.tabs{display:flex; gap:2px; flex-wrap:wrap; flex-grow:1}
+.tabs button{font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+  letter-spacing:.02em; padding:7px 12px; border:1px solid transparent;
+  background:none; color:var(--ink-2); border-radius:2px; cursor:pointer;
+  transition:.13s; white-space:nowrap}
+.tabs button:hover{color:var(--ink); background:var(--sunken)}
+.tabs button[aria-current="page"]{background:var(--accent); color:#fff}
+.kalstand{display:flex; align-items:center; gap:7px; flex-shrink:0;
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-2)}
+.kalpunt{width:7px; height:7px; border-radius:50%; background:var(--warn);
+  flex-shrink:0}
+.kalstand.klaar .kalpunt{background:var(--accent)}
+
+.pagina{display:none}
+.pagina.aan{display:block}
+.pagina > section:first-of-type{margin-top:0}
+.paginakop{margin:0 0 28px}
+.paginakop h2{font-size:31px; letter-spacing:-.022em; margin:0 0 8px}
+
+/* ---- voorblad ---- */
+.mast{padding:20px 0 36px; border-bottom:none}
+.knoppen{display:flex; flex-wrap:wrap; gap:8px; margin:30px 0 0}
+.knop{font-family:Archivo,sans-serif; font-size:14px; font-weight:600;
+  padding:11px 20px; border-radius:2px; border:1px solid var(--line-2);
+  color:var(--ink-2); text-decoration:none; transition:.13s}
+.knop:hover{border-color:var(--accent); color:var(--ink)}
+.knop.primair{background:var(--accent); border-color:var(--accent); color:#fff}
+.knop.primair:hover{background:var(--ink); border-color:var(--ink); color:#fff}
+.melding{display:flex; align-items:baseline; gap:11px; margin:26px 0 0;
+  padding:11px 15px; background:var(--warn-bg); border:1px solid var(--line);
+  border-radius:3px; max-width:78ch}
+.mlabel{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--warn); white-space:nowrap}
+.mtekst{font-size:14.5px; color:var(--ink-2)}
+.stat .d{display:block; margin-top:5px; font-size:12.5px; color:var(--ink-3)}
+
+/* ---- auteursvermelding ---- */
+.credit{margin:34px 0 0; padding:16px 0 0; border-top:1px solid var(--line);
+  max-width:70ch}
+.credit-rol{font-family:"IBM Plex Mono",monospace; font-size:10px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3);
+  margin-bottom:7px}
+.credit-naam{font-family:Archivo,sans-serif; font-size:16px; color:var(--ink)}
+.credit-fun{font-size:13.5px; color:var(--ink-2); margin-top:2px}
+
+/* ---- werkblad ---- */
+.werkblad{display:grid; grid-template-columns:270px minmax(0,1fr); gap:20px;
+  align-items:start}
+@media (max-width:860px){.werkblad{grid-template-columns:minmax(0,1fr)}}
+.rail{display:flex; flex-direction:column; gap:20px; position:sticky; top:64px;
+  background:var(--card); border:1px solid var(--line); border-radius:3px;
+  padding:18px; box-shadow:var(--shadow)}
+@media (max-width:860px){.rail{position:static}}
+.raildeel{display:flex; flex-direction:column}
+.raillabel{font-family:"IBM Plex Mono",monospace; font-size:10px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3);
+  margin-bottom:9px}
+.ctl.kolom{flex-direction:column; flex-wrap:nowrap; gap:3px; margin-bottom:0}
+.ctl.kolom button{text-align:left}
+.blad{display:flex; flex-direction:column; gap:20px; min-width:0}
+.bladkop{display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:12px}
+.bladkop .legend{margin:0}
+.opslag{display:flex; flex-direction:column; gap:4px}
+.opslag div{display:flex; justify-content:space-between; gap:10px;
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2);
+  padding:5px 9px; border:1px solid var(--line); border-radius:2px}
+.opslag b{color:var(--ink); font-weight:500}
+
+/* ---- analysekaarten ---- */
+.analyses{display:grid; gap:14px}
+.analyse{background:var(--card); border:1px solid var(--line); border-radius:3px;
+  padding:20px 22px; box-shadow:var(--shadow)}
+.analyse header{display:flex; align-items:baseline; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:12px}
+.analyse h3{font-family:Archivo,sans-serif; font-size:18px; font-weight:600;
+  letter-spacing:-.014em; margin:0}
+.staat{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; padding:3px 9px; border-radius:2px; white-space:nowrap}
+.staat.wacht{background:var(--warn-bg); color:var(--warn)}
+.staat.uit{background:var(--groen-licht); color:var(--accent)}
+.analyse .rijen{display:grid; grid-template-columns:100px minmax(0,1fr); gap:5px 14px;
+  font-size:14px}
+.analyse .rijen dt{font-family:"IBM Plex Mono",monospace; font-size:10px;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3);
+  padding-top:4px}
+.analyse .rijen dd{margin:0; color:var(--ink-2); max-width:78ch}
+.uitkomst{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  margin:14px 0 0; padding:13px 16px; background:var(--sunken);
+  border:1px solid var(--line); border-radius:3px}
+.uitkomst .groot{font-family:Archivo,sans-serif; font-size:27px; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:var(--ink)}
+.uitkomst .bij{font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+  color:var(--ink-2)}
 
 *{box-sizing:border-box}
 body{
@@ -180,7 +295,7 @@ td.n{text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numer
 
 code{font-family:"IBM Plex Mono",monospace; font-size:.86em;
   background:var(--sunken); padding:1.5px 5px; border-radius:2px; border:1px solid var(--line)}
-footer{margin-top:72px; padding-top:24px; border-top:1px solid var(--line);
+footer{margin-top:48px; padding-top:24px; border-top:1px solid var(--line);
   color:var(--ink-3); font-size:13.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>

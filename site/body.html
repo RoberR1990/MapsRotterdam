@@ -1,71 +1,118 @@
 <div class="wrap">
 
-<header class="mast">
-  <p class="eyebrow">Prototype &middot; gratis stack &middot; 1 september 2026</p>
-  <h1>Rotterdam Reistijdmatrix</h1>
-  <p class="lede">Rijtijden tussen de <b>99 betaald-parkeergebieden</b> van gemeente
-  Rotterdam, voor vijf momenten in de week. Gebouwd op uitsluitend gratis en open
-  bronnen: het Nationaal Parkeer Register voor de zones, OpenStreetMap en een
-  self-hosted OSRM voor de routering, NDW voor het verkeer. Geen API-sleutel, geen
-  transactiekosten, geen limiet op het aantal cellen.</p>
-  <div class="stats">
-    <div class="stat"><span class="k">Parkeerzones</span><span class="v">99</span></div>
-    <div class="stat"><span class="k">Cellen per tijdvak</span><span class="v">9.801</span></div>
-    <div class="stat"><span class="k">Tijdvakken</span><span class="v">6</span></div>
-    <div class="stat"><span class="k">Rekentijd volle matrix</span><span class="v">2<span class="u"> s</span></span></div>
-    <div class="stat"><span class="k">Kosten</span><span class="v">&euro;0<span class="u">,00</span></span></div>
+<div class="topbar">
+  <a class="merk" href="#voorblad">
+    <span class="merkvlak" aria-hidden="true"></span>
+    <span class="merknaam">Reistijdmatrix Rotterdam</span>
+  </a>
+  <nav class="tabs" id="tabs" aria-label="Onderdelen"></nav>
+  <div class="kalstand" id="kalStand" title="Stand van de kalibratie">
+    <span class="kalpunt" aria-hidden="true"></span>
+    <span class="kaltekst">&mdash;</span>
   </div>
-</header>
+</div>
 
-<section>
-  <h2>De zones op de kaart</h2>
-  <p class="sub">De 99 gebieden met <code>usageid=BETAALDP</code> van areamanager 599,
-  rechtstreeks uit het RDW-register. Kies een zone om te zien hoe ver je er vandaan
-  komt; wissel van tijdvak om te zien wat de spits ermee doet.</p>
+<main id="paginas">
 
-  <div class="card">
-    <div class="ctl" id="slotCtl" role="group" aria-label="Kies een tijdvak"></div>
-    <div class="split">
-      <div id="mapWrap">
-        <canvas id="map" role="img"
-          aria-label="Kaart van de 99 Rotterdamse parkeerzones, gekleurd naar rijtijd vanaf de gekozen zone"></canvas>
+<div class="pagina" id="pg-voorblad">
+  <header class="mast">
+    <p class="eyebrow">Open data &middot; geen API-kosten &middot; gemeente Rotterdam</p>
+    <h1>Hoe lang doe je erover, van zone naar zone?</h1>
+    <p class="lede">Rijtijden tussen de <b>99 betaald-parkeergebieden</b> van
+    Rotterdam, voor vijftien momenten in de week. Gebouwd op uitsluitend open
+    bronnen: het Nationaal Parkeer Register voor de zones, OpenStreetMap en een
+    self-hosted OSRM voor de routering, NDW voor het verkeer.</p>
+
+    <div class="knoppen">
+      <a class="knop primair" href="#matrix">Naar de matrix</a>
+      <a class="knop" href="#analyse">Wat we onderzoeken</a>
+      <a class="knop" href="#kalibratie">Hoe het gemeten wordt</a>
+    </div>
+
+    <div class="melding" id="voorbladMelding">
+      <span class="mlabel">Let op</span>
+      <span class="mtekst">De congestiefactoren zijn nog schattingen. Er wordt
+      sinds 1 september gemeten.</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="k">Parkeerzones</span><span class="v">99</span>
+        <span class="d">9.702 zonecombinaties</span></div>
+      <div class="stat"><span class="k">Tijdvakken</span><span class="v">15</span>
+        <span class="d">ma t/m zo, 6&ndash;23 uur</span></div>
+      <div class="stat"><span class="k">Metingen</span><span class="v" id="vbMetingen">&mdash;</span>
+        <span class="d">groeit elk uur</span></div>
+      <div class="stat"><span class="k">Kosten</span><span class="v">&euro;0<span class="u">,00</span></span>
+        <span class="d">alleen open bronnen</span></div>
+    </div>
+
+    <div class="credit">
+  <div class="credit-rol">Auteur en contactpersoon</div>
+  <div class="credit-naam">Robert Riteco</div>
+  <div class="credit-fun">Productmanager Datagedreven Werken &middot; gemeente Rotterdam</div>
+</div>
+  </header>
+</div>
+
+<div class="pagina" id="pg-matrix">
+  <div class="paginakop">
+    <h2>De matrix</h2>
+    <p class="sub">Rijtijd van elke zone naar elke andere, in minuten. Kies links
+    een tijdvak en een vertrekzone; de matrix en de kaart tonen allebei hetzelfde
+    beeld en dezelfde kleurschaal.</p>
+  </div>
+
+  <div class="werkblad">
+    <aside class="rail">
+      <div class="raildeel">
+        <div class="raillabel">Tijdvak</div>
+        <div class="ctl kolom" id="slotCtl" role="group" aria-label="Kies een tijdvak"></div>
       </div>
-      <div>
-        <p class="pick">Vanaf zone</p>
+
+      <div class="raildeel">
+        <div class="raillabel">Vanaf zone</div>
         <p class="origin" id="originName">&mdash;</p>
+        <div id="mapWrap">
+          <canvas id="map" role="img"
+            aria-label="Kaart van de 99 Rotterdamse parkeerzones, gekleurd naar rijtijd vanaf de gekozen zone"></canvas>
+        </div>
+        <p class="viz-note">Klik een zone om het vertrekpunt te verzetten.</p>
+      </div>
+
+      <div class="raildeel">
+        <div class="raillabel">Opslag</div>
+        <div class="opslag" id="opslagLijst"></div>
+        <p class="viz-note">Gemeten toeslagen bovenop het tijdvak. Zie
+        <a href="#analyse">Analyse</a>.</p>
+      </div>
+    </aside>
+
+    <div class="blad">
+      <div class="card">
+        <div class="bladkop">
+          <div class="raillabel">Snelste en traagste bestemmingen</div>
+          <div class="legend">
+            <span class="lab">&le;3 min</span>
+            <div class="bar" id="rampBar"></div>
+            <span class="lab">&ge;36 min</span>
+          </div>
+        </div>
         <ul class="rank" id="rank"></ul>
-        <p class="viz-note">Klik een zone op de kaart om het vertrekpunt te
-        verzetten. De kleurschaal is dezelfde als bij de matrix hieronder, dus
-        kaart en matrix zijn onderling vergelijkbaar.</p>
+      </div>
+
+      <div class="card">
+        <div class="raillabel">Alle 99 &times; 99 ritten</div>
+        <p class="viz-note">Zones staan gegroepeerd per stadsdeel, dus de
+        blokstructuur volgt de geografie: lichte blokken op de diagonaal zijn
+        ritten binnen een stadsdeel, de donkere hoeken zijn Noord&nbsp;&harr;&nbsp;Zuid
+        over de Maas.</p>
+        <div class="scroller">
+          <canvas id="heat" width="980" height="980" role="img"
+            aria-label="Matrix van 99 bij 99 zones, donkerder is een langere rijtijd"></canvas>
+        </div>
       </div>
     </div>
-    <div class="legend">
-      <span class="lab">&le;3 min</span>
-      <div class="bar" id="rampBar"></div>
-      <span class="lab">&ge;36 min</span>
-      <span class="lab" style="margin-left:8px">Vaste schaal over alle tijdvakken.</span>
-    </div>
   </div>
-</section>
-
-<section>
-  <h2>De volledige matrix</h2>
-  <p class="sub">Elke cel is de rijtijd van de zone in de rij naar de zone in de
-  kolom, voor het gekozen tijdvak. Zones staan gegroepeerd per stadsdeel, zodat de
-  blokstructuur de geografie volgt &mdash; de lichte blokken op de diagonaal zijn
-  ritten binnen hetzelfde stadsdeel, de donkere hoeken zijn Noord&nbsp;&harr;&nbsp;Zuid
-  over de Maas.</p>
-  <div class="card">
-    <div class="scroller">
-      <canvas id="heat" width="980" height="980" role="img"
-        aria-label="Reistijdmatrix van 99 bij 99 parkeerzones"></canvas>
-    </div>
-    <p class="viz-note">De diagonaal is de intrazonale tijd (parkeerplek zoeken
-    binnen de zone zelf), afgeleid uit de zone-oppervlakte &mdash; een andere
-    grootheid dan de rest, en apart gekleurd. Beweeg over een cel voor de details;
-    klik om die rij als vertrekpunt op de kaart te zetten.</p>
-  </div>
-</section>
 
 <section>
   <h2>Wat het tijdvak doet met de rit</h2>
@@ -78,103 +125,20 @@
       aria-label="Mediane en p90 reistijd per tijdvak"></canvas></div>
   </div>
 </section>
+</div>
 
-<section>
-  <h2>Waarom een platte factor niet volstaat</h2>
-  <p class="sub">De spitsopslag verschilt sterk per zonepaar: van x1,15 tot x1,94,
-  met een mediaan van x1,56. Eén vermenigvuldiger over de hele matrix zou de korte
-  ritten binnen een wijk fors overschatten en de lange ritten over de A16 juist
-  onderschatten.</p>
-  <div class="card">
-    <div class="scroller"><canvas id="hist" width="980" height="300" role="img"
-      aria-label="Verdeling van de spitsopslag over alle zoneparen"></canvas></div>
-    <p class="viz-note">Verdeling van avondspits gedeeld door vrije doorstroom over
-    alle 9.702 zoneparen (diagonaal uitgezonderd).</p>
-  </div>
-  <div class="card" style="margin-top:20px">
-    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Zwaarst getroffen zoneparen</h3>
-    <p class="viz-note" style="margin:0 0 14px">Avondspits versus vrije doorstroom.</p>
-    <div class="scroller"><table id="topTable"><thead><tr>
-      <th>Van</th><th>Naar</th><th style="text-align:right">Km</th>
-      <th style="text-align:right">Vrij</th><th style="text-align:right">Spits</th>
-      <th style="text-align:right">Factor</th>
-    </tr></thead><tbody></tbody></table></div>
-  </div>
-</section>
-
-<section>
-  <h2>De tijdreeks is begonnen</h2>
-  <p class="sub">De congestiefactoren zijn nu nog plaatshouders. Om ze te
-  vervangen door metingen loopt er sinds 1 september een sampler die het
-  NDW-beeld ophaalt op de momenten die ertoe doen. Hieronder wanneer dat gebeurt,
-  en hoever het staat.</p>
-
-  <div class="stats" style="margin-bottom:24px">
-    <div class="stat"><span class="k">Meetmomenten</span><span class="v" id="pMom">—</span></div>
-    <div class="stat"><span class="k">Tijdvakken gestart</span><span class="v" id="pSlots">—</span></div>
-    <div class="stat"><span class="k">Metingen per week</span><span class="v" id="pWeek">—</span></div>
-    <div class="stat"><span class="k">Meetlocaties</span><span class="v">5.969</span></div>
+<div class="pagina" id="pg-analyse">
+  <div class="paginakop">
+    <h2>Wat we onderzoeken</h2>
+    <p class="sub">Naast de reistijd zelf houden we bij wat er nog meer speelde
+    op het moment van meten: het weer, evenementen, matrixborden boven de
+    snelweg, schoolvakanties. Elke vraag hieronder heeft een methode en een
+    stand &mdash; ook als het antwoord nog niet binnen is. Juist dan.</p>
   </div>
 
-  <div class="card">
-    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Het meetrooster</h3>
-    <p class="viz-note" style="margin:0 0 16px">De balken zijn de tijdvakken, de
-    stippen de momenten waarop daadwerkelijk gemeten wordt. Maandag en vrijdag
-    lopen door van 6 tot 23 uur; dinsdag tot en met donderdag houdt smalle
-    spitsvensters aan, want schoudertijd zou juist het spitsbeeld verdunnen.</p>
-    <div id="schedWrap"><canvas id="sched" role="img"
-      aria-label="Weekrooster met de tijdvakken en de momenten waarop gemeten wordt"></canvas></div>
-    <div class="legend" id="schedLegend"></div>
-  </div>
+  <div class="analyses" id="analyses"></div>
 
-  <div class="card" style="margin-top:20px">
-    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Hoever zijn we?</h3>
-    <p class="viz-note" style="margin:0 0 4px">Aantal <b>losse dagen</b> per tijdvak.
-    Vol is drie: vanaf dan rekent <code>aggregate</code> een factor uit.</p>
-    <div class="prog" id="progList"></div>
-    <p class="viz-note" id="progNote"></p>
-  </div>
-</section>
-
-<section>
-  <h2>Wat de gratis route wel en niet levert</h2>
-  <p class="sub">De zones en de routering zijn compleet en productiewaardig. De
-  verkeerslaag is de open vraag &mdash; en daar zit precies één beperking.</p>
-  <ul class="ledger">
-    <li><span class="n">Zones uit het parkeerregister</span><span class="tag ok">Werkt</span>
-      <span class="d">124 betaald-parkeergebieden van gemeente Rotterdam uit de
-      RDW-datasets PARKEERGEBIED en GEOMETRIE GEBIED, gratis en zonder sleutel.
-      Met een ondergrens van 1 ha blijven er 99 over &mdash; daaronder is een
-      &ldquo;zone&rdquo; een enkel straatblok.</span></li>
-    <li><span class="n">Wegennet en routering</span><span class="tag ok">Werkt</span>
-      <span class="d">OSM-extract van Rotterdam met self-hosted OSRM. Onbeperkt,
-      offline herhaalbaar, de volledige 99&times;99 matrix in twee seconden. Drie op
-      het wegennet gesnapte punten per zone, mediane snap-afstand 13&nbsp;m &mdash;
-      de punten liggen dus op straat, niet in het water.</span></li>
-    <li><span class="n">Verkeersdata verzamelen</span><span class="tag ok">Werkt</span>
-      <span class="d">NDW open data, 5.969 meetlocaties in de regio. De geplande
-      GitHub-workflow bleek niet te vuren &mdash; drie cron-varianten, nul geplande
-      runs, terwijl handmatig starten steeds werkte. Het verzamelen loopt daarom
-      buiten Actions om, via een script dat vanaf elke machine kan draaien die de
-      repo kan pushen.</span></li>
-    <li><span class="n">Historisch verkeer per moment van de week</span><span class="tag todo">Ontbreekt</span>
-      <span class="d">Dit is de enige echte beperking. NDW publiceert open alleen het
-      <em>actuele</em> beeld; historie zit achter een (gratis) Dexter-account. Vandaar
-      de sampler: na twee à drie weken is er een echt weekprofiel om op te
-      kalibreren.</span></li>
-  </ul>
-
-  <div class="warn">
-    <div class="h">De getallen hierboven zijn nog niet gekalibreerd</div>
-    <p>De congestiefactoren in <code>src/timeslots.py</code> zijn plaatshouders op
-    basis van gangbare stedelijke waarden, geen metingen aan Rotterdams verkeer. De
-    <em>structuur</em> van de matrix klopt &mdash; welke paren hard geraakt worden en
-    welke niet volgt uit het echte wegennet. De <em>absolute</em> spitstijden moeten
-    nog tegen waarnemingen aan. Dat raakt alleen die ene parametertabel; de rest van
-    de pijplijn blijft staan.</p>
-  </div>
-</section>
-
+  <p class="viz-note" style="margin-top:20px" id="analyseNoot"></p>
 <section>
   <h2>Wat de eerste dag meten al laat zien</h2>
   <p class="sub">De reistijdfeed loopt sinds vandaag mee. Dat is nog geen
@@ -224,7 +188,129 @@
     een brede spits, maar zeker is dat pas na meer dagen.</p>
   </div>
 </section>
+<section>
+  <h2>Waarom een platte factor niet volstaat</h2>
+  <p class="sub">De spitsopslag verschilt sterk per zonepaar: van x1,15 tot x1,94,
+  met een mediaan van x1,56. Eén vermenigvuldiger over de hele matrix zou de korte
+  ritten binnen een wijk fors overschatten en de lange ritten over de A16 juist
+  onderschatten.</p>
+  <div class="card">
+    <div class="scroller"><canvas id="hist" width="980" height="300" role="img"
+      aria-label="Verdeling van de spitsopslag over alle zoneparen"></canvas></div>
+    <p class="viz-note">Verdeling van avondspits gedeeld door vrije doorstroom over
+    alle 9.702 zoneparen (diagonaal uitgezonderd).</p>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Zwaarst getroffen zoneparen</h3>
+    <p class="viz-note" style="margin:0 0 14px">Avondspits versus vrije doorstroom.</p>
+    <div class="scroller"><table id="topTable"><thead><tr>
+      <th>Van</th><th>Naar</th><th style="text-align:right">Km</th>
+      <th style="text-align:right">Vrij</th><th style="text-align:right">Spits</th>
+      <th style="text-align:right">Factor</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+</div>
 
+<div class="pagina" id="pg-kalibratie">
+  <div class="paginakop">
+    <h2>Van schatting naar meting</h2>
+    <p class="sub">De reistijden komen uit een routemodel dat de maximumsnelheid
+    aanneemt. Wat dat model niet weet is hoe druk het is; dat meten we zelf, uur
+    voor uur, en vervangen de aannames zodra een tijdvak genoeg losse dagen
+    heeft.</p>
+  </div>
+<section>
+  <h2>De tijdreeks is begonnen</h2>
+  <p class="sub">De congestiefactoren zijn nu nog plaatshouders. Om ze te
+  vervangen door metingen loopt er sinds 1 september een sampler die het
+  NDW-beeld ophaalt op de momenten die ertoe doen. Hieronder wanneer dat gebeurt,
+  en hoever het staat.</p>
+
+  <div class="stats" style="margin-bottom:24px">
+    <div class="stat"><span class="k">Meetmomenten</span><span class="v" id="pMom">—</span></div>
+    <div class="stat"><span class="k">Tijdvakken gestart</span><span class="v" id="pSlots">—</span></div>
+    <div class="stat"><span class="k">Metingen per week</span><span class="v" id="pWeek">—</span></div>
+    <div class="stat"><span class="k">Meetlocaties</span><span class="v">5.969</span></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Het meetrooster</h3>
+    <p class="viz-note" style="margin:0 0 16px">De balken zijn de tijdvakken, de
+    stippen de momenten waarop daadwerkelijk gemeten wordt. Maandag en vrijdag
+    lopen door van 6 tot 23 uur; dinsdag tot en met donderdag houdt smalle
+    spitsvensters aan, want schoudertijd zou juist het spitsbeeld verdunnen.</p>
+    <div id="schedWrap"><canvas id="sched" role="img"
+      aria-label="Weekrooster met de tijdvakken en de momenten waarop gemeten wordt"></canvas></div>
+    <div class="legend" id="schedLegend"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3 style="margin:0 0 4px; font-size:16px; font-weight:600">Hoever zijn we?</h3>
+    <p class="viz-note" style="margin:0 0 4px">Aantal <b>losse dagen</b> per tijdvak.
+    Vol is drie: vanaf dan rekent <code>aggregate</code> een factor uit.</p>
+    <div class="prog" id="progList"></div>
+    <p class="viz-note" id="progNote"></p>
+  </div>
+</section>
+<section>
+  <h2>Van schatting naar meting</h2>
+  <p class="sub">Elke keer dat de factoren veranderen wordt de hele matrix
+  opnieuw doorgerekend en als versie vastgelegd. Zo blijft zichtbaar wat de
+  kalibratie precies verschoven heeft &mdash; nu nog één punt, het vertrekpunt.</p>
+  <div class="card">
+    <div class="scroller"><canvas id="kal" role="img"
+      aria-label="Mediane reistijd per tijdvak over de opeenvolgende matrixversies"></canvas></div>
+    <p class="viz-note" id="kalNote"></p>
+  </div>
+</section>
+</div>
+
+<div class="pagina" id="pg-methode">
+  <div class="paginakop">
+    <h2>Hoe het gemaakt is</h2>
+    <p class="sub">Wat de gratis route wel en niet levert, hoe representatief de
+    meetpunten zijn, en waarom de matrix per tijdvak een eigen routedataset
+    krijgt.</p>
+  </div>
+<section>
+  <h2>Wat de gratis route wel en niet levert</h2>
+  <p class="sub">De zones en de routering zijn compleet en productiewaardig. De
+  verkeerslaag is de open vraag &mdash; en daar zit precies één beperking.</p>
+  <ul class="ledger">
+    <li><span class="n">Zones uit het parkeerregister</span><span class="tag ok">Werkt</span>
+      <span class="d">124 betaald-parkeergebieden van gemeente Rotterdam uit de
+      RDW-datasets PARKEERGEBIED en GEOMETRIE GEBIED, gratis en zonder sleutel.
+      Met een ondergrens van 1 ha blijven er 99 over &mdash; daaronder is een
+      &ldquo;zone&rdquo; een enkel straatblok.</span></li>
+    <li><span class="n">Wegennet en routering</span><span class="tag ok">Werkt</span>
+      <span class="d">OSM-extract van Rotterdam met self-hosted OSRM. Onbeperkt,
+      offline herhaalbaar, de volledige 99&times;99 matrix in twee seconden. Drie op
+      het wegennet gesnapte punten per zone, mediane snap-afstand 13&nbsp;m &mdash;
+      de punten liggen dus op straat, niet in het water.</span></li>
+    <li><span class="n">Verkeersdata verzamelen</span><span class="tag ok">Werkt</span>
+      <span class="d">NDW open data, 5.969 meetlocaties in de regio. De geplande
+      GitHub-workflow bleek niet te vuren &mdash; drie cron-varianten, nul geplande
+      runs, terwijl handmatig starten steeds werkte. Het verzamelen loopt daarom
+      buiten Actions om, via een script dat vanaf elke machine kan draaien die de
+      repo kan pushen.</span></li>
+    <li><span class="n">Historisch verkeer per moment van de week</span><span class="tag todo">Ontbreekt</span>
+      <span class="d">Dit is de enige echte beperking. NDW publiceert open alleen het
+      <em>actuele</em> beeld; historie zit achter een (gratis) Dexter-account. Vandaar
+      de sampler: na twee à drie weken is er een echt weekprofiel om op te
+      kalibreren.</span></li>
+  </ul>
+
+  <div class="warn">
+    <div class="h">De getallen hierboven zijn nog niet gekalibreerd</div>
+    <p>De congestiefactoren in <code>src/timeslots.py</code> zijn plaatshouders op
+    basis van gangbare stedelijke waarden, geen metingen aan Rotterdams verkeer. De
+    <em>structuur</em> van de matrix klopt &mdash; welke paren hard geraakt worden en
+    welke niet volgt uit het echte wegennet. De <em>absolute</em> spitstijden moeten
+    nog tegen waarnemingen aan. Dat raakt alleen die ene parametertabel; de rest van
+    de pijplijn blijft staan.</p>
+  </div>
+</section>
 <section>
   <h2>Hoe representatief zijn de meetpunten?</h2>
   <p class="sub">De kalibratie is zo goed als de meetpunten waarop hij steunt.
@@ -267,19 +353,26 @@
     feed met reistijden per traject</b>, en die dekt de snelwegen wél.</p>
   </div>
 </section>
-
 <section>
-  <h2>Van schatting naar meting</h2>
-  <p class="sub">Elke keer dat de factoren veranderen wordt de hele matrix
-  opnieuw doorgerekend en als versie vastgelegd. Zo blijft zichtbaar wat de
-  kalibratie precies verschoven heeft &mdash; nu nog één punt, het vertrekpunt.</p>
-  <div class="card">
-    <div class="scroller"><canvas id="kal" role="img"
-      aria-label="Mediane reistijd per tijdvak over de opeenvolgende matrixversies"></canvas></div>
-    <p class="viz-note" id="kalNote"></p>
-  </div>
+  <h2>Het ontwerp: een profiel per tijdvak</h2>
+  <p>Elk tijdvak krijgt een eigen OSRM-dataset met geschaalde wegsnelheden, in
+  plaats van een factor over de vrije-doorstroommatrix. Dat kost niets extra &mdash;
+  een dataset bouwen duurt veertig seconden &mdash; en het verandert ook de
+  <em>routekeuze</em>: bij congestie wordt de ring onaantrekkelijk en gaat het model
+  binnendoor, precies zoals bestuurders doen. Bij een deel van de zoneparen gebeurt
+  dat nu al; met sterker per wegklasse gedifferentieerde factoren wordt dat effect
+  groter. Een vermenigvuldiger achteraf kan dit per definitie niet.</p>
+  <p>Twee valkuilen kostten elk een iteratie. Het schalen van de snelheidstabel in
+  het car-profiel had vrijwel geen effect (x1,06 in de spits), omdat
+  <code>WayHandlers.maxspeed</code> daarna draait en de klassesnelheid overschrijft
+  met de OSM-tag &mdash; en in Nederland is bijna elke weg getagd; de congestiefactor
+  hangt daarom als eigen handler achter de keten. En de tijdvakken moesten expliciet
+  in <code>Europe/Amsterdam</code> vastgelegd worden: een CI-runner staat op UTC, en
+  in de zomer belandt de avondspits dan in het dal.</p>
 </section>
+</div>
 
+<div class="pagina" id="pg-bronnen">
 <section>
   <h2>Waar komt dit allemaal vandaan?</h2>
   <p class="sub">Per onderdeel: welke bron, welke aannames erin zitten, hoe het
@@ -437,29 +530,20 @@
     <em>consistent</em> is, niet dat hij <em>juist</em> is.</p>
   </div>
 </section>
+<div class="credit">
+  <div class="credit-rol">Auteur en contactpersoon</div>
+  <div class="credit-naam">Robert Riteco</div>
+  <div class="credit-fun">Productmanager Datagedreven Werken &middot; gemeente Rotterdam</div>
+</div>
+</div>
 
-<section>
-  <h2>Het ontwerp: een profiel per tijdvak</h2>
-  <p>Elk tijdvak krijgt een eigen OSRM-dataset met geschaalde wegsnelheden, in
-  plaats van een factor over de vrije-doorstroommatrix. Dat kost niets extra &mdash;
-  een dataset bouwen duurt veertig seconden &mdash; en het verandert ook de
-  <em>routekeuze</em>: bij congestie wordt de ring onaantrekkelijk en gaat het model
-  binnendoor, precies zoals bestuurders doen. Bij een deel van de zoneparen gebeurt
-  dat nu al; met sterker per wegklasse gedifferentieerde factoren wordt dat effect
-  groter. Een vermenigvuldiger achteraf kan dit per definitie niet.</p>
-  <p>Twee valkuilen kostten elk een iteratie. Het schalen van de snelheidstabel in
-  het car-profiel had vrijwel geen effect (x1,06 in de spits), omdat
-  <code>WayHandlers.maxspeed</code> daarna draait en de klassesnelheid overschrijft
-  met de OSM-tag &mdash; en in Nederland is bijna elke weg getagd; de congestiefactor
-  hangt daarom als eigen handler achter de keten. En de tijdvakken moesten expliciet
-  in <code>Europe/Amsterdam</code> vastgelegd worden: een CI-runner staat op UTC, en
-  in de zomer belandt de avondspits dan in het dal.</p>
-</section>
+</main>
 
 <footer>
-  <p style="max-width:70ch">Rotterdam Reistijdmatrix &middot; 99 betaald-parkeergebieden.
+  <p style="max-width:70ch">Reistijdmatrix Rotterdam &middot; 99 betaald-parkeergebieden.
   Bronnen: RDW Nationaal Parkeer Register, OpenStreetMap (ODbL) via BBBike, OSRM,
-  NDW open data.</p>
+  NDW open data, Open-Meteo, Rijksoverheid. Samengesteld door Robert Riteco,
+  Productmanager Datagedreven Werken, gemeente Rotterdam.</p>
 </footer>
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>

@@ -240,8 +240,16 @@ const SOORT_KLEUR = {
   "Vroege ochtend": 4, "Ochtendspits": 1, "Dal": 2,
   "Avondspits": 3, "Avond": 0, "Middag": 5,
 };
-const CAT_LICHT = ["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300"];
-const CAT_DONKER = ["#3987e5","#d95926","#199e70","#c98500","#d55181","#008300"];
+/* De nacht is geen zevende tijdvak maar de noemer waar alle andere door delen.
+   Hij krijgt daarom geen eigen categoriekleur -- die zou hem tot gelijke maken
+   en de reeks tot zeven rekken, terwijl een categorische reeks er zes heeft. */
+const NEUTRAAL = "Nacht";
+/* Categorische kleuren uit de huisstijl van gemeente Rotterdam. Volgorde is
+   vast en telt: groen naast oranje valt bij kleurenblindheid samen, dus die
+   staan bewust uit elkaar. Beide reeksen komen door de zes controles van de
+   dataviz-validator (lichtheidsband, chroma, CVD-scheiding, contrast). */
+const CAT_LICHT  = ["#00811f","#a12b5e","#00548f","#d85644","#0079b8","#62a72b"];
+const CAT_DONKER = ["#11a03e","#c93675","#1791d4","#e3614d","#0079b8","#62a72b"];
 const donker = () => {
   const r = document.documentElement;
   if (r.dataset.theme === "dark") return true;
@@ -249,6 +257,8 @@ const donker = () => {
   return matchMedia("(prefers-color-scheme: dark)").matches;
 };
 const catKleur = i => (donker() ? CAT_DONKER : CAT_LICHT)[i % 6];
+const soortKleur = s => (s === NEUTRAAL || SOORT_KLEUR[s] === undefined)
+  ? css("--ink-3") : catKleur(SOORT_KLEUR[s]);
 const soortVan = key => P.slots.find(s => s.key === key).soort;
 
 const H0 = 5.5, H1 = 23.5;      // getoonde uren
@@ -285,7 +295,7 @@ function drawSched(){
   P.vensters.forEach(v => {
     const y = T + v.dag * RIJ, h = RIJ - 6;
     const x0 = x(Math.max(v.van, H0)), x1 = x(Math.min(v.tot, H1));
-    c.fillStyle = catKleur(SOORT_KLEUR[soortVan(v.slot)]);
+    c.fillStyle = soortKleur(soortVan(v.slot));
     c.beginPath(); c.roundRect(x0 + 1, y, Math.max(3, x1 - x0 - 2), h, 4); c.fill();
     const vol = soortVan(v.slot);
     c.font = '600 10.5px "IBM Plex Mono", monospace';
@@ -311,7 +321,7 @@ function drawSched(){
 function vulLegend(){
   const el = document.getElementById("schedLegend");
   el.innerHTML = P.soorten.map(s =>
-    `<span class="lab"><span class="swatch" style="background:${catKleur(SOORT_KLEUR[s])}"></span>${s}</span>`
+    `<span class="lab"><span class="swatch" style="background:${soortKleur(s)}"></span>${s}</span>`
   ).join("") + `<span class="lab" style="margin-left:4px">
     <span class="swatch" style="background:var(--surface-viz); border:1px solid var(--ink)"></span>meetmoment</span>`;
 }
@@ -502,7 +512,7 @@ const LIJN_DONKER = ["#3987e5", "#d95926", "#199e70"];
 const lijnKleur = i => (donker() ? LIJN_DONKER : LIJN_LICHT)[i];
 
 function drawDagprofiel(){
-  const W = 980, H = 320, L = 54, R = 108, T = 26, B = 44;
+  const W = 980, H = 320, L = 54, R = 128, T = 26, B = 44;
   const c = sizeCanvas(document.getElementById("dagprof"), W, H);
   const iw = W - L - R, ih = H - T - B;
   const ink = css("--ink"), ink2 = css("--ink-2"), ink3 = css("--ink-3"),
@@ -698,7 +708,119 @@ function drawHist(){
   });
 })();
 
+
+/* ================= paginanavigatie ================= */
+/* Zes pagina's in plaats van elf secties achter elkaar. De keuze staat in de
+   hash, zodat een link naar #analyse ook echt op die pagina uitkomt en de
+   terugknop van de browser werkt. */
+const PAGINAS = [
+  ["voorblad",   "Voorblad"],
+  ["matrix",     "Matrix"],
+  ["analyse",    "Analyse"],
+  ["kalibratie", "Kalibratie"],
+  ["methode",    "Methode"],
+  ["bronnen",    "Bronnen"],
+];
+const A = __ANALYSE__;
+
+function toonPagina(naam, schuif){
+  if (!PAGINAS.some(([k]) => k === naam)) naam = "voorblad";
+  for (const [k] of PAGINAS){
+    const el = document.getElementById("pg-" + k);
+    if (el) el.classList.toggle("aan", k === naam);
+  }
+  for (const b of document.querySelectorAll("#tabs button"))
+    b.setAttribute("aria-current", b.dataset.pg === naam ? "page" : "false");
+  if (schuif) scrollTo({top:0, behavior:"instant"});
+  /* De canvassen meten hun eigen kolom op; op een verborgen pagina is die 0
+     breed, dus alles opnieuw tekenen zodra hij zichtbaar wordt. */
+  renderAll();
+}
+
+(function bouwTabs(){
+  const nav = document.getElementById("tabs");
+  for (const [k, label] of PAGINAS){
+    const b = document.createElement("button");
+    b.textContent = label; b.dataset.pg = k;
+    b.onclick = () => { location.hash = k; };
+    nav.appendChild(b);
+  }
+  addEventListener("hashchange", () => toonPagina(location.hash.slice(1), true));
+})();
+
+/* ================= analysepagina ================= */
+function pct(f){ return ((f - 1) * 100).toFixed(1).replace(".", ",").replace(/,0$/, ""); }
+
+function vulAnalyses(){
+  const el = document.getElementById("analyses");
+  if (!el || !A) return;
+  el.innerHTML = A.analyses.map(a => {
+    const klaar = a.staat !== "wacht";
+    const kop = `<span class="staat ${klaar ? "uit" : "wacht"}">${a.staat}</span>`;
+    const uit = klaar
+      ? `<div class="uitkomst">
+           <span class="groot">&times;${a.factor.toFixed(3).replace(".", ",")}</span>
+           <span class="bij">${a.factor >= 1 ? "+" : ""}${pct(a.factor)}% reistijd &middot;
+             p25 ${a.p25.toFixed(2).replace(".", ",")} &middot;
+             p75 ${a.p75.toFixed(2).replace(".", ",")} &middot;
+             ${a.momenten_met} momenten, ${a.paren} paren</span>
+         </div>`
+      : `<div class="uitkomst">
+           <span class="bij">Nog geen uitspraak &mdash; ${a.stand}.
+           De steekproef is het aantal momenten, niet het aantal meetpunten.</span>
+         </div>`;
+    return `<article class="analyse">
+      <header><h3>${a.titel}</h3>${kop}</header>
+      <dl class="rijen">
+        <dt>Waarom</dt><dd>${a.waarom}</dd>
+        <dt>Methode</dt><dd>${a.methode}</dd>
+        <dt>Kanttekening</dt><dd>${a.haak}</dd>
+      </dl>
+      ${uit}
+    </article>`;
+  }).join("");
+  const klaar = A.analyses.filter(a => a.staat !== "wacht").length;
+  document.getElementById("analyseNoot").textContent =
+    `${klaar} van de ${A.analyses.length} analyses heeft een eerste uitkomst. ` +
+    `Bijgewerkt ${A.gegenereerd.replace("T", " om ").slice(0, 19)}.`;
+}
+
+/* De opslagfactoren uit de analyse, klein, naast de matrix */
+function vulOpslag(){
+  const el = document.getElementById("opslagLijst");
+  if (!el || !A) return;
+  el.innerHTML = A.analyses.map(a => {
+    const w = a.staat === "wacht";
+    return `<div><span>${a.id}</span><b>${w ? "&mdash;" : "&times;" +
+      a.factor.toFixed(2).replace(".", ",")}</b></div>`;
+  }).join("");
+}
+
+/* Kalibratiestand in de balk bovenaan */
+function vulKalStand(){
+  const el = document.getElementById("kalStand");
+  if (!el || typeof P === "undefined") return;
+  /* De nachtreferentie telt niet mee als tijdvak: er komt geen matrix van, hij
+     is de noemer waar de andere door delen. Hem meetellen zou de teller op 16
+     zetten terwijl de pagina er vijftien toont. */
+  const vakken = P.slots.filter(s => s.soort !== "Nacht");
+  const klaar = vakken.filter(s => s.dagen >= P.doel_dagen).length;
+  const bezig = vakken.filter(s => s.dagen > 0).length;
+  el.classList.toggle("klaar", klaar === vakken.length);
+  el.querySelector(".kaltekst").textContent =
+    klaar === vakken.length ? "gekalibreerd"
+      : `ongekalibreerd \u00b7 ${klaar}/${vakken.length} afgerond`;
+  const m = document.getElementById("vbMetingen");
+  if (m) m.textContent = (P.stats.bruikbaar || 0).toLocaleString("nl-NL");
+  const mel = document.querySelector("#voorbladMelding .mtekst");
+  if (mel) mel.innerHTML = `De congestiefactoren zijn nog schattingen. Er wordt sinds
+    1 september gemeten: <b>${bezig} van de ${vakken.length} tijdvakken</b> hebben
+    metingen, <b>${klaar}</b> ${klaar === 1 ? "heeft" : "hebben"} de drie losse
+    dagen die nodig zijn.`;
+}
+
 function renderAll(){
+  vulKalStand(); vulAnalyses(); vulOpslag();
   vulLegend(); drawSched(); vulVoortgang();
   drawNdw(); vulDekking(); drawKal();
   drawDagprofiel(); vulPiek();
@@ -708,7 +830,7 @@ function renderAll(){
 }
 /* start in het centrum: dat maakt de kaart meteen leesbaar */
 origin = Math.max(0, Z.findIndex(z => z.gebied === "Rotterdam Centrum"));
-renderAll();
+toonPagina(location.hash.slice(1) || "voorblad", false);
 document.fonts && document.fonts.ready.then(renderAll);
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderAll, 150); });
