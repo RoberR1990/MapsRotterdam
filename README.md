@@ -121,6 +121,46 @@ zonder gaten: `maandag_vroeg` / `_ochtendspits` / `_dal` / `_avondspits` /
 te labelen houd je beide opties open: uit aparte reeksen kun je later alsnog een
 gecombineerd ma-vr cijfer rekenen, andersom niet.
 
+### Covariaten: weer, kalender, evenementen
+
+Een tijdvakfactor hoort een *typisch* moment te beschrijven. Regende het
+toevallig tijdens twee van de drie avondspitsen die we gemeten hebben, dan zit
+die regen permanent in de matrix en is er later niet meer uit te halen. Drie
+bronnen markeren elk meetmoment:
+
+| module | bron | bijzonderheid |
+|---|---|---|
+| `src/weer.py` | Open-Meteo, uurwaarden voor het centrum | gratis, geen sleutel; `past_days` levert de afgelopen week opnieuw mee, dus een gemiste dag herstelt vanzelf |
+| `src/kalender.py` | schoolvakanties (rijksoverheid.nl) en feestdagen | Rotterdam is **regio Midden**; feestdagen worden gerekend uit de paasdatum |
+| `src/evenementen.py` | de `publicEvent`-records uit de NDW-planningsfeed die we al ophaalden | 122 stuks, met locatie en verkeersgevolg |
+
+Twee valkuilen die we onderweg tegenkwamen, allebei het soort dat een schatting
+degelijk laat lijken terwijl hij nergens op slaat:
+
+**De echte tijden zitten in `perioden`, niet in start/eind.** Een weekmarkt staat
+in de feed als één record van september 2026 tot juli 2028 met honderd losse
+perioden erin. Op start/eind kijken maakt hem twee jaar onafgebroken actief. En
+een periode die zélf maanden duurt (De Kuip heeft er zo een voor het hele
+seizoen) is geen moment maar een staande mededeling -- die zegt niet wanneer er
+gevoetbald wordt en staat dus altijd aan. Vandaar `MAX_PERIODE_UREN`.
+
+**De steekproef is het aantal momenten, niet het aantal meetpunten.** Duizend
+inductielussen tijdens dezelfde bui zijn duizend metingen van één bui. Op paren
+tellen zou een schatting uit twee buien er statistisch solide laten uitzien
+(n=5988!). `MIN_MOMENTEN` telt daarom momenten.
+
+Evenementen worden **plaatsgebonden** beoordeeld, weer en kalender niet: een
+markt in Hoogvliet doet niets met de Maastunnel, dus "er is ergens in de regio
+een evenement" zou bijna altijd waar zijn en het effect uitsmeren tot nul.
+
+    python3 src/covariaten.py tabel       # out/covariaten.csv, een rij per meetmoment
+    python3 src/covariaten.py effect      # opslagfactor per kenmerk
+    python3 src/covariaten.py verstoord   # welke momenten je eruit zou laten
+
+Schoonmaken is opt-in: `NDW_SCHOON=1 python3 src/sample_ndw.py aggregate` laat
+natte momenten weg. Opt-in omdat filteren data kost, en dat is met een handvol
+natte momenten een slechte ruil.
+
 ### Voortgang bekijken
 
     NDW_HISTORY_DIR=/pad/naar/ndw-data/ndw_history python3 src/progress.py

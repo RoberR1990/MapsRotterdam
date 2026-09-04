@@ -272,12 +272,21 @@ def aggregate(ref_keuze="auto"):
     # Twee triggers naast elkaar, of een handmatige run, leveren anders
     # dubbele rijen die dat ene moment zwaarder laten wegen.
     gezien = set()
-    rows = overgeslagen = dubbel = 0
+    rows = overgeslagen = dubbel = weer_weg = 0
+    # Schoonmaken is opt-in: standaard rekent aggregate met alles, en met
+    # NDW_SCHOON=1 blijven momenten met regen erbuiten. Opt-in omdat filteren
+    # data kost, en met een handvol natte momenten is dat een slechte ruil --
+    # zie src/covariaten.py.
+    slecht = set()
+    if os.environ.get("NDW_SCHOON") == "1":
+        from covariaten import verstoorde_momenten
+        slecht = verstoorde_momenten()
+
     def lees(paden, waarde, vrij=None):
         """Beide feeds leveren hetzelfde soort getal: iets dat met de snelheid
         meestijgt. Alleen verhoudingen worden gebruikt, dus de eenheid doet er
         niet toe -- voor reistijden is 1/duur daarom bruikbaar als snelheidsmaat."""
-        nonlocal rows, overgeslagen, dubbel
+        nonlocal rows, overgeslagen, dubbel, weer_weg
         for path in sorted(paden):
             with gzip.open(path, "rt", newline="") as f:
                 for r in csv.DictReader(f):
@@ -289,6 +298,10 @@ def aggregate(ref_keuze="auto"):
                     gezien.add(sleutel)
                     if r.get("verstoord") == "1":
                         overgeslagen += 1
+                        continue
+                    if slecht and datetime.fromisoformat(
+                            r["ts"]).astimezone(TZ) in slecht:
+                        weer_weg += 1
                         continue
                     if vrij:
                         v0 = vrij(r)
@@ -371,7 +384,8 @@ def aggregate(ref_keuze="auto"):
         w.writerows(out)
     print(f"{rows} metingen -> {len(out)} locatie/tijdvak-factoren "
           f"({overgeslagen} overgeslagen wegens werkzaamheden vlakbij, "
-          f"{dubbel} dubbele rijen genegeerd)")
+          f"{dubbel} dubbele rijen genegeerd"
+          + (f", {weer_weg} wegens weer" if weer_weg else "") + ")")
     gebruikt = Counter(r["referentie"] for r in out)
     print("  referentie: " + ", ".join(f"{k} ({v} rijen)"
                                        for k, v in gebruikt.most_common()))

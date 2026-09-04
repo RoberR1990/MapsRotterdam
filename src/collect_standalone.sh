@@ -31,7 +31,18 @@ git -C "$WORK" clean -qfd
 
 export NDW_HISTORY_DIR="$WORK/ndw_history"
 export NDW_BLACKOUTS="$WORK/blackouts/ndw_site_blackouts.json"
+export WEER_BESTAND="$WORK/weer/rotterdam.csv"
+export EVENEMENTEN_BESTAND="$WORK/evenementen/rotterdam.json"
 python3 src/sample_ndw.py collect
+
+# Covariaten. Allebei zelfherstellend en allebei goedkoop, dus gewoon elke keer:
+# Open-Meteo levert de afgelopen week opnieuw mee, en het evenementenarchief
+# groeit alleen maar aan. Een mislukking hier mag de meting niet meeslepen --
+# een uur zonder weerbericht is jammer, een uur zonder meting is weg.
+python3 src/weer.py || echo "weer overgeslagen" >&2
+if [ -f out/ndw_events_rotterdam.json ]; then
+  python3 src/evenementen.py archiveer || echo "evenementen overgeslagen" >&2
+fi
 
 cd "$WORK"
 git add -A
