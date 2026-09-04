@@ -33,6 +33,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evenementen as EV  # noqa: E402
 import kalender as KAL  # noqa: E402
+import matrixborden as MB  # noqa: E402
 import weer as WEER  # noqa: E402
 from sample_ndw import HIST, HIST_TT, TZ, road_class, slot_of  # noqa: E402
 
@@ -126,7 +127,7 @@ def effect(kenmerk):
     met = defaultdict(list)       # (site, slot) -> waarden met het kenmerk
     momenten_met, momenten_zonder = set(), set()
     for dt, sid, slot, v in metingen():
-        k = waar(kenmerk, dt, w, ev, sites.get(sid))
+        k = waar(kenmerk, dt, w, ev, sites.get(sid), sid)
         if k is None:
             continue
         (met if k else heen)[(sid, slot)].append(v)
@@ -156,7 +157,16 @@ def plaatsen():
             if r.get("lat") is not None}
 
 
-def waar(kenmerk, dt, w, ev, plaats=None):
+_borden_cache = {}
+
+
+def _borden():
+    if not _borden_cache:
+        _borden_cache.update(MB.lees() or {"": []})
+    return _borden_cache
+
+
+def waar(kenmerk, dt, w, ev, plaats=None, site=None):
     """Is dit kenmerk waar voor deze meting? None als we het niet weten.
 
     `plaats` is (lat, lon) van de meetlocatie, voor kenmerken die plaatsgebonden
@@ -179,6 +189,14 @@ def waar(kenmerk, dt, w, ev, plaats=None):
             return None          # zonder coordinaat geen uitspraak
         dicht = EV.dichtstbij(ev, dt, *plaats)
         return dicht is not None and dicht <= EV.SITE_RADIUS_M
+    if kenmerk == "matrixbord":
+        # Alleen te beantwoorden voor snelwegtrajecten met weg+hectometer in
+        # hun id. Voor een inductielus in de stad blijft het onbekend, en dat
+        # is beter dan hem stilzwijgend als "geen bord" te tellen.
+        borden = _borden().get(dt.isoformat(timespec="minutes"))
+        if borden is None or site is None:
+            return None
+        return MB.hindert_traject(borden, site)
     if kenmerk == "wind":
         s = (WEER.bij(w, dt) or {}).get("windstoot_kmh")
         return None if s is None else float(s) >= 60

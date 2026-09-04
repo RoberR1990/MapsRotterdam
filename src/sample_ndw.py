@@ -43,7 +43,12 @@ FEED_TT = "https://opendata.ndw.nu/traveltime.xml.gz"
 # CI-runner staat op UTC en zou alles een of twee uur verschuiven.
 TZ = ZoneInfo("Europe/Amsterdam")
 
-VELDEN = ["ts", "site_id", "speed_kmh", "n", "verstoord"]
+VELDEN = ["ts", "site_id", "speed_kmh", "n", "flow_vh", "verstoord"]
+# Waarde voor een kolom die in oudere dagbestanden nog niet bestond. Voor
+# `verstoord` is 0 de juiste aanname (er was toen geen markering, dus niet
+# verstoord). Voor `flow_vh` niet: 0 voertuigen is een echte meting en zou een
+# lege weg suggereren waar we in werkelijkheid niets weten. Leeg dus.
+ONBEKEND = {"verstoord": "0"}
 VELDEN_TT = ["ts", "site_id", "duur_s", "ref_s", "n", "verstoord"]
 
 # Wanneer is een tijdvak bruikbaar? Niet bij genoeg metingen, maar bij genoeg
@@ -54,6 +59,13 @@ VELDEN_TT = ["ts", "site_id", "duur_s", "ref_s", "n", "verstoord"]
 # ruis is het probleem niet -- spreiding over dagen wel.
 MIN_DAGEN = 3
 MIN_METINGEN = 5
+# Een snelheid uit twee gepasseerde auto's is ruis. Dat speelt vooral 's nachts,
+# en juist daar doet het pijn: dat tijdvak levert de vrije-doorstroomreferentie
+# waar alle andere factoren door delen. Meetlocaties met een bekende intensiteit
+# onder deze grens tellen niet mee VOOR DE REFERENTIE -- in de gewone tijdvakken
+# blijven ze staan, want daar is een lege weg gewoon een lege weg. Rijen van
+# voor de intensiteitskolom hebben een lege waarde en worden niet geweerd.
+MIN_INTENSITEIT_REF = 120     # voertuigen per uur, zoals NDW het meldt
 HIST_TT = Path(os.environ.get("NDW_TT_DIR") or HIST.parent / "ndw_traveltime")
 
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
@@ -161,7 +173,7 @@ def zet_kolommen_klaar(path):
         for r in rijen[1:]:
             # rijen die al de nieuwe breedte hebben zijn positioneel te lezen
             d = dict(zip(VELDEN if len(r) == len(VELDEN) else oud, r))
-            w.writerow([d.get(k, "0") for k in VELDEN])
+            w.writerow([d.get(k, ONBEKEND.get(k, "")) for k in VELDEN])
     print(f"   dagbestand omgezet: {oud} -> {VELDEN}")
 
 
@@ -220,7 +232,7 @@ def collect():
             if sid in region:
                 vs = int(sid in verstoord)
                 w.writerow([now.isoformat(timespec="minutes"), sid,
-                            m["speed_kmh"], m["n"], vs])
+                            m["speed_kmh"], m["n"], m.get("flow_vh", ""), vs])
                 k += 1
                 v += vs
     print(f"{now:%Y-%m-%d %H:%M} slot={slot_of(now)} -> {k} metingen bijgeschreven"
@@ -310,8 +322,15 @@ def aggregate(ref_keuze="auto"):
                     v = waarde(r)
                     if slot and v is not None:
                         dag = datetime.fromisoformat(r["ts"]).astimezone(TZ).date()
-                        per_site[r["site_id"]][slot].append((dag, v))
+                        per_site[r["site_id"]][slot].append((dag, v, intens(r)))
                         rows += 1
+
+    def intens(r):
+        """Intensiteit bij deze meting, of None als we die niet weten."""
+        try:
+            return float(r["flow_vh"])
+        except (KeyError, TypeError, ValueError):
+            return None
 
     def getal(r, veld):
         try:
@@ -332,14 +351,20 @@ def aggregate(ref_keuze="auto"):
     out = []
     def bruikbaar(paren):
         return (len(paren) >= MIN_METINGEN
-                and len({d for d, _ in paren}) >= MIN_DAGEN)
+                and len({p[0] for p in paren}) >= MIN_DAGEN)
+
+    def stevig(paren):
+        """Alleen de metingen waar genoeg verkeer langsreed. Onbekend telt mee."""
+        return [p for p in paren
+                if p[2] is None or p[2] >= MIN_INTENSITEIT_REF]
 
     # De nacht is de enige echt vrije doorstroom die we zelf meten; werkdag_avond
     # was een noodgreep uit de tijd dat we 's nachts niets ophaalden. Zodra de
     # nacht meer locaties dekt schakelen we vanzelf over -- geen drempel om met
     # de hand bij te stellen.
     def dekking(slot):
-        return sum(1 for sl in per_site.values() if bruikbaar(sl.get(slot, [])))
+        return sum(1 for sl in per_site.values()
+                   if bruikbaar(stevig(sl.get(slot, []))))
 
     ref_slot = max(("nacht_referentie", "werkdag_avond"), key=dekking)
 
@@ -350,9 +375,10 @@ def aggregate(ref_keuze="auto"):
                 return None, None
             return statistics.median(ndw_vrij[sid]), "ndw_statisch"
         ref = slots.get(ref_keuze if ref_keuze != "auto" else ref_slot)
-        if not ref or not bruikbaar(ref):
+        ref = stevig(ref or [])
+        if not bruikbaar(ref):
             return None, None
-        rw = sorted(v for _, v in ref)
+        rw = sorted(p[1] for p in ref)
         return rw[int(len(rw) * 0.85)], (ref_keuze if ref_keuze != "auto"
                                          else ref_slot)
 
@@ -364,15 +390,15 @@ def aggregate(ref_keuze="auto"):
         for slot, paren in slots.items():
             if not bruikbaar(paren):
                 continue
-            f = round(statistics.median(v for _, v in paren) / free, 3)
+            f = round(statistics.median(p[1] for p in paren) / free, 3)
             out.append({"site_id": sid, "klasse": klasse, "slot": slot,
                         "n_metingen": len(paren),
-                        "n_dagen": len({d for d, _ in paren}), "factor": f,
+                        "n_dagen": len({p[0] for p in paren}), "factor": f,
                         "referentie": ref_naam})
             per_class[(klasse, slot)].append(f)
 
     if not out:
-        dagen = {d for sl in per_site.values() for pr in sl.values() for d, _ in pr}
+        dagen = {p[0] for sl in per_site.values() for pr in sl.values() for p in pr}
         print(f"Nog niet bruikbaar: {rows} metingen over {len(dagen)} dag(en), "
               f"{overgeslagen} overgeslagen wegens werkzaamheden, {dubbel} dubbel. "
               f"Een tijdvak telt mee vanaf {MIN_DAGEN} losse dagen en "
@@ -410,7 +436,7 @@ def vergelijk_referenties(per_site, ndw_vrij, ref_slot, bruikbaar):
         eigen = slots.get(ref_slot)
         if not eigen or not bruikbaar(eigen):
             continue
-        rw = sorted(v for _, v in eigen)
+        rw = sorted(p[1] for p in eigen)
         p85 = rw[int(len(rw) * 0.85)]
         if p85 > 0:
             paren.append(statistics.median(ndw_vrij[sid]) / p85)

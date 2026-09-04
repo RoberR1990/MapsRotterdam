@@ -47,7 +47,18 @@ def parse_sites(path):
 
 
 def parse_speeds(path):
-    """Per meetlocatie de gemeten snelheden (km/u), gewogen naar aantal metingen."""
+    """Per meetlocatie de gemeten snelheid (km/u) en de intensiteit (vtg/uur).
+
+    De feed levert per rijstrook eerst een blok TrafficFlow en daarna een blok
+    TrafficSpeed. De stroken worden niet aan elkaar gekoppeld -- dat hoeft ook
+    niet: de snelheid wordt gewogen naar het aantal metingen, de intensiteit
+    wordt over de stroken opgeteld.
+
+    Waarom de intensiteit erbij hoort: uit een snelheid alleen kun je een lege
+    weg niet van een kapotte lus onderscheiden. 's Nachts melden veel stedelijke
+    lussen een handvol voertuigen, en een "snelheid" uit twee auto's is ruis --
+    juist in het tijdvak dat als vrije-doorstroomreferentie dient.
+    """
     out = {}
     with gzip.open(path, "rb") as fh:
         for _, el in iterparse(fh, events=("end",)):
@@ -55,21 +66,26 @@ def parse_speeds(path):
                 continue
             ref = find(el, "measurementSiteReference")
             sid = ref.get("id") if ref is not None else None
-            num, den = 0.0, 0.0
-            for avs in el.iter():
-                if tag(avs) != "averageVehicleSpeed":
-                    continue
-                sp = find(avs, "speed")
-                n = int(avs.get("numberOfInputValuesUsed") or 0)
-                if sp is None or n <= 0:
-                    continue
-                v = float(sp.text)
-                if v < 0:          # -1 = geen geldige meting
-                    continue
-                num += v * n
-                den += n
+            num, den, flow = 0.0, 0.0, 0.0
+            for c in el.iter():
+                naam = tag(c)
+                if naam == "vehicleFlowRate" and c.text:
+                    v = float(c.text)
+                    if v >= 0:     # -1 = geen geldige meting
+                        flow += v
+                elif naam == "averageVehicleSpeed":
+                    sp = find(c, "speed")
+                    n = int(c.get("numberOfInputValuesUsed") or 0)
+                    if sp is None or n <= 0:
+                        continue
+                    v = float(sp.text)
+                    if v < 0:
+                        continue
+                    num += v * n
+                    den += n
             if sid and den > 0:
-                out[sid] = {"speed_kmh": round(num / den, 1), "n": int(den)}
+                out[sid] = {"speed_kmh": round(num / den, 1), "n": int(den),
+                            "flow_vh": int(flow)}
             el.clear()
     return out
 

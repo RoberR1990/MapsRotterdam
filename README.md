@@ -153,6 +153,45 @@ Evenementen worden **plaatsgebonden** beoordeeld, weer en kalender niet: een
 markt in Hoogvliet doet niets met de Maastunnel, dus "er is ergens in de regio
 een evenement" zou bijna altijd waar zijn en het effect uitsmeren tot nul.
 
+### Intensiteit: lege weg of kapotte lus?
+
+De snelheidsfeed bevat naast `averageVehicleSpeed` ook `vehicleFlowRate`, even
+vaak, en dat lieten we liggen. Uit een snelheid alleen is een lege weg niet van
+een defecte meetlus te onderscheiden, en een "snelheid" uit twee gepasseerde
+auto's is ruis. Dat doet vooral pijn 's nachts -- precies het tijdvak dat de
+vrije-doorstroomreferentie levert waar alle andere factoren door delen. De
+nachtmetingen leveren 130-197 locaties tegen 400-450 overdag.
+
+`flow_vh` staat nu in het dagbestand en `MIN_INTENSITEIT_REF` weert te dunne
+metingen **uit de referentie** -- niet uit de gewone tijdvakken, want daar is een
+lege weg gewoon een lege weg. Rijen van voor deze kolom hebben een lege waarde
+en worden niet geweerd: onbekend is niet hetzelfde als nul.
+
+### Matrixborden boven de snelweg
+
+`Matrixsignaalinformatie.xml.gz` meldt realtime wat er boven elke rijstrook
+staat. Dat is de verklaring die ontbreekt bij een uitschieter op de snelweg: een
+traject dat x3 doet omdat er een strook dicht is, is geen structurele congestie.
+
+Het koppelen kan hier preciezer dan bij de andere covariaten, want de feed geeft
+weg, rijbaan en hectometer -- en die drie zitten ook in de traject-ids van de
+reistijdfeed (`RWS08_13_HRL_011.5` = A13, rijbaan L, hm 11,5). Van de 2.926
+trajecten zijn er 445 zo te plaatsen: alle snelwegtrajecten, en dat is precies
+waar matrixborden hangen. Een proefsnapshot gaf 270 hinderende borden in de
+regio, waarvan er 80 boven een van onze trajecten stonden.
+
+Twee dingen zaten anders dan verwacht:
+
+* **Locatie en beeld staan in aparte records.** Allebei `<event>`, gekoppeld op
+  de sign-uuid: 18.429 records zeggen waar een bord hangt en 18.429 andere wat
+  erop staat. Een record met een rood kruis bevat dus geen weg en geen
+  hectometer. Op één record kijken levert nul treffers op, en dat ziet er niet
+  uit als een fout maar als een rustige nacht.
+* **Niet elk traject blijft op dezelfde weg.** `RWS04_ZWN_GD_A15_L_48.9_A4_L_75.6`
+  loopt van de A15 naar de A4; die twee hectometers naast elkaar lezen levert
+  27 km A15 op. De id-regex eist nu dat beide uiteinden dezelfde weg en rijbaan
+  noemen.
+
     python3 src/covariaten.py tabel       # out/covariaten.csv, een rij per meetmoment
     python3 src/covariaten.py effect      # opslagfactor per kenmerk
     python3 src/covariaten.py verstoord   # welke momenten je eruit zou laten
