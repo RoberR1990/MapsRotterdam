@@ -171,7 +171,7 @@ function drawHeat(){
   const W = PAD+GRID+8, H = PAD+GRID+8;
   const c = sizeCanvas(heat, W, H), steps = ramp();
   const line = css("--line"), line2 = css("--line-2"), ink2 = css("--ink-2"),
-        ink3 = css("--ink-3"), sunken = css("--sunken"), a2 = css("--accent-2");
+        ink3 = css("--ink-3"), sunken = css("--sunken");
   c.clearRect(0,0,W,H); c.fillStyle = css("--surface-viz"); c.fillRect(0,0,W,H);
 
   const m = D.m[slot];
@@ -200,8 +200,6 @@ function drawHeat(){
   c.save(); c.translate(14, PAD); c.rotate(-Math.PI/2);
   c.textAlign="right"; c.fillText("← VAN", 0, 0); c.restore();
 
-  c.strokeStyle = a2; c.lineWidth = 1.5;             /* de rij die de kaart toont */
-  c.strokeRect(PAD-1, PAD+origin*CELL-1, GRID+2, CELL+1);
   if (hover){
     c.strokeStyle = css("--ink"); c.lineWidth = 1.5;
     c.strokeRect(PAD+hover.j*CELL-.75, PAD, CELL+.5, GRID);
