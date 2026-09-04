@@ -239,7 +239,10 @@
     <p class="viz-note" style="margin:0 0 16px">De balken zijn de tijdvakken, de
     stippen de momenten waarop daadwerkelijk gemeten wordt. Maandag en vrijdag
     lopen door van 6 tot 23 uur; dinsdag tot en met donderdag houdt smalle
-    spitsvensters aan, want schoudertijd zou juist het spitsbeeld verdunnen.</p>
+    spitsvensters aan, want schoudertijd zou juist het spitsbeeld verdunnen.
+    De grijze band elke nacht van 1 tot 5 uur is de vrije-doorstroomreferentie:
+    geen tijdvak waar een matrix van komt, maar de noemer waar alle andere
+    factoren door delen.</p>
     <div id="schedWrap"><canvas id="sched" role="img"
       aria-label="Weekrooster met de tijdvakken en de momenten waarop gemeten wordt"></canvas></div>
     <div class="legend" id="schedLegend"></div>
@@ -254,7 +257,7 @@
   </div>
 </section>
 <section>
-  <h2>Van schatting naar meting</h2>
+  <h2>Wat de kalibratie tot nu toe verschoven heeft</h2>
   <p class="sub">Elke keer dat de factoren veranderen wordt de hele matrix
   opnieuw doorgerekend en als versie vastgelegd. Zo blijft zichtbaar wat de
   kalibratie precies verschoven heeft &mdash; nu nog één punt, het vertrekpunt.</p>
@@ -262,6 +265,21 @@
     <div class="scroller"><canvas id="kal" role="img"
       aria-label="Mediane reistijd per tijdvak over de opeenvolgende matrixversies"></canvas></div>
     <p class="viz-note" id="kalNote"></p>
+  </div>
+</section>
+
+<section>
+  <h2>Staat het getal al stil?</h2>
+  <p class="sub">Een schatting die niet meer beweegt als er data bijkomt is
+  uitgeconvergeerd. Dat is niet hetzelfde als juist &mdash; staat de meetmethode
+  scheef, dan convergeert hij netjes naar het verkeerde getal &mdash; maar het zegt
+  wel of langer doormeten nog iets oplevert.</p>
+  <div class="card">
+    <div class="scroller"><table id="convTabel"><thead><tr>
+      <th>Wegklasse</th><th>Tijdvak</th><th class="num">Peilingen</th>
+      <th class="num">Laatste stap</th><th class="num">Totaal verschoven</th>
+      <th>Staat</th></tr></thead><tbody></tbody></table></div>
+    <p class="viz-note" id="convNoot"></p>
   </div>
 </section>
 </div>

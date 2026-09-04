@@ -121,6 +121,44 @@ zonder gaten: `maandag_vroeg` / `_ochtendspits` / `_dal` / `_avondspits` /
 te labelen houd je beide opties open: uit aparte reeksen kun je later alsnog een
 gecombineerd ma-vr cijfer rekenen, andersom niet.
 
+### Wanneer zijn we klaar met meten?
+
+Twee vragen die makkelijk door elkaar lopen:
+
+* **Beweegt het getal nog?** Zelf te meten. `src/convergentie.py` rekent de
+  factoren opnieuw alsof het elke meetdag opnieuw was en kijkt hoe het antwoord
+  zich verplaatst. Zit de laatste stap onder de 2%, dan voegt een dag extra
+  niets meer toe.
+* **Klopt het getal?** Niet zelf te meten. Als de meetmethode scheef staat,
+  convergeert hij netjes naar het verkeerde getal. Daar is een externe bron voor
+  nodig; zie de kanttekening hieronder.
+
+Eén valkuil zit erin verwerkt: een dag telt alleen als peiling als de factor
+daadwerkelijk verschoof. Op een vrijdag komt er niets bij in de di-do-tijdvakken,
+dus die "peiling" is een herhaling van gisteren. Zulke herhalingen meetellen zou
+een reeks stil laten lijken terwijl er alleen niets gemeten is -- precies de
+verkeerde conclusie.
+
+    python3 src/convergentie.py     # out/convergentie.json + een tabel
+
+### Wat we nog niet weten
+
+Alles wat tot nu toe getoetst is, is **interne consistentie**: de twee
+vrije-doorstroomreferenties tegen elkaar, de gemeten factoren tegen de
+plaatshouders, de reeks tegen zichzelf. Twee bronnen die dezelfde fout maken zijn
+het roerend met elkaar eens.
+
+Een concreet voorbeeld van wat dat kan verbergen: NDW-inductielussen liggen
+midden op een wegvak, niet in de wachtrij voor het kruispunt -- en juist daar
+verliest stadsverkeer zijn tijd. Is dat systematisch, dan meten we consequent te
+optimistisch en zien we dat nooit aan onze eigen cijfers.
+
+Daar is één antwoord op: een steekproef tegen een externe, verkeersbewuste bron.
+Niet de hele matrix -- een paar honderd goed gespreide zoneparen op drie of vier
+momenten is genoeg om een systematische afwijking van ~10% aan te tonen. Dat is
+orde duizend aanroepen, niet 145.000. Zolang die er niet is, is het eerlijkste
+wat over de matrix te zeggen valt: **intern consistent, extern ongetoetst**.
+
 ### Covariaten: weer, kalender, evenementen
 
 Een tijdvakfactor hoort een *typisch* moment te beschrijven. Regende het

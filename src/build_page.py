@@ -27,6 +27,7 @@ GEGEVENS = {
     "__HISTORY__": "matrix_history_parkzones.json",
     "__DAGPROFIEL__": "dagprofiel.json",
     "__ANALYSE__": "analyse.json",
+    "__CONVERGENTIE__": "convergentie.json",
 }
 
 

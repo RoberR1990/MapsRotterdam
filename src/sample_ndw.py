@@ -253,7 +253,7 @@ def road_class(site_id):
     return "stedelijk"
 
 
-def aggregate(ref_keuze="auto"):
+def aggregate(ref_keuze="auto", tot=None, stil=False):
     """Congestiefactor per meetlocatie en tijdvak: gemeten / vrije doorstroom.
 
     Voor de vrije doorstroom zijn er twee soorten referentie, en ze zijn geen
@@ -274,6 +274,10 @@ def aggregate(ref_keuze="auto"):
     snelweg levert hij factoren boven 1 op -- avondverkeer rijdt dan harder dan
     de "referentie". Hij is dus geen vrije doorstroom, eerder een typische
     reistijd. Daarom is hij hier een **toetssteen en geen productiereferentie**:
+    `tot` rekent alsof het die dag was: alleen metingen tot en met die datum
+    tellen mee. Zo kun je zien of het antwoord nog beweegt als er data bijkomt
+    -- zie src/convergentie.py.
+
     `auto` blijft bij onze eigen tijdvakken, en `ndw` is er om tegenaan te
     houden. Ze door elkaar gebruiken zou locaties met een NDW-referentie een
     systematisch ~11% hogere factor geven dan hun buren.
@@ -310,6 +314,9 @@ def aggregate(ref_keuze="auto"):
                     gezien.add(sleutel)
                     if r.get("verstoord") == "1":
                         overgeslagen += 1
+                        continue
+                    if tot and datetime.fromisoformat(
+                            r["ts"]).astimezone(TZ).date() > tot:
                         continue
                     if slecht and datetime.fromisoformat(
                             r["ts"]).astimezone(TZ) in slecht:
@@ -397,13 +404,19 @@ def aggregate(ref_keuze="auto"):
                         "referentie": ref_naam})
             per_class[(klasse, slot)].append(f)
 
+    factoren = {k: round(statistics.median(v), 4)
+                for k, v in per_class.items()}
     if not out:
-        dagen = {p[0] for sl in per_site.values() for pr in sl.values() for p in pr}
-        print(f"Nog niet bruikbaar: {rows} metingen over {len(dagen)} dag(en), "
-              f"{overgeslagen} overgeslagen wegens werkzaamheden, {dubbel} dubbel. "
-              f"Een tijdvak telt mee vanaf {MIN_DAGEN} losse dagen en "
-              f"{MIN_METINGEN} metingen.")
-        return
+        if not stil:
+            dagen = {p[0] for sl in per_site.values()
+                     for pr in sl.values() for p in pr}
+            print(f"Nog niet bruikbaar: {rows} metingen over {len(dagen)} dag(en), "
+                  f"{overgeslagen} overgeslagen wegens werkzaamheden, {dubbel} dubbel. "
+                  f"Een tijdvak telt mee vanaf {MIN_DAGEN} losse dagen en "
+                  f"{MIN_METINGEN} metingen.")
+        return factoren
+    if stil:
+        return factoren
     with open(OUT / "ndw_factors.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
@@ -419,6 +432,7 @@ def aggregate(ref_keuze="auto"):
     for (klasse, slot), vals in sorted(per_class.items()):
         print(f"  {klasse:<10} {slot:<22} factor {statistics.median(vals):.2f} "
               f"(n={len(vals)} locaties)")
+    return factoren
 
 
 def vergelijk_referenties(per_site, ndw_vrij, ref_slot, bruikbaar):

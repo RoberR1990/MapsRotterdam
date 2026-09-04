@@ -259,7 +259,10 @@ const soortKleur = s => (s === NEUTRAAL || SOORT_KLEUR[s] === undefined)
   ? css("--ink-3") : catKleur(SOORT_KLEUR[s]);
 const soortVan = key => P.slots.find(s => s.key === key).soort;
 
-const H0 = 5.5, H1 = 23.5;      // getoonde uren
+const H0 = 0.5, H1 = 23.5;      // getoonde uren -- vanaf 0:30, omdat de
+                                // nachtreferentie van 1 tot 5 uur meet. Begon
+                                // dit venster bij 5:30, dan stond de nacht wel
+                                // in de legenda maar nergens in de grafiek
 function drawSched(){
   const host = document.getElementById("schedWrap");
   const W = Math.max(280, Math.min(host.clientWidth || 900, 900));
@@ -273,7 +276,9 @@ function drawSched(){
 
   c.font = '400 10.5px "IBM Plex Mono", monospace'; c.textAlign = "center";
   c.textBaseline = "top"; c.strokeStyle = line; c.lineWidth = 1;
-  for (let h = 6; h <= 23; h += 3){
+  /* Vanaf 0 en niet vanaf 6: sinds de nachtreferentie meeloopt begint het
+     rooster om 1 uur, en een band zonder uurmarkering ernaast is niet te lezen. */
+  for (let h = 0; h <= 23; h += 3){
     c.fillStyle = ink3; c.fillText(String(h).padStart(2,"0"), x(h), 6);
     c.beginPath(); c.moveTo(x(h) + .5, T - 4); c.lineTo(x(h) + .5, T + 7 * RIJ); c.stroke();
   }
@@ -311,9 +316,11 @@ function drawSched(){
     c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
   });
 
+  /* Rechts uitgelijnd in de linkermarge, naast de dagnamen: linksboven botste
+     het met de 00-markering nu de as bij middernacht begint. */
   c.fillStyle = ink3; c.font = '400 10.5px "IBM Plex Mono", monospace';
-  c.textAlign = "left"; c.textBaseline = "top";
-  c.fillText("uur", 6, 6);
+  c.textAlign = "right"; c.textBaseline = "top";
+  c.fillText("uur", L - 10, 6);
 }
 
 function vulLegend(){
@@ -720,6 +727,7 @@ const PAGINAS = [
   ["bronnen",    "Bronnen"],
 ];
 const A = __ANALYSE__;
+const CV = __CONVERGENTIE__;
 
 function toonPagina(naam, schuif){
   if (!PAGINAS.some(([k]) => k === naam)) naam = "voorblad";
@@ -783,6 +791,28 @@ function vulAnalyses(){
     `Bijgewerkt ${A.gegenereerd.replace("T", " om ").slice(0, 19)}.`;
 }
 
+/* ================= convergentie ================= */
+function vulConvergentie(){
+  const tb = document.querySelector("#convTabel tbody");
+  if (!tb || !CV) return;
+  const pct = x => x === null ? "&mdash;" : (x * 100).toFixed(1).replace(".", ",") + "%";
+  tb.innerHTML = CV.reeksen.map(r => `<tr>
+    <td>${r.klasse}</td>
+    <td class="mono">${r.slot.replace(/_/g, " ")}</td>
+    <td class="num">${r.peilingen}</td>
+    <td class="num">${pct(r.laatste_stap)}</td>
+    <td class="num">${pct(r.totale_beweging)}</td>
+    <td>${r.staat}</td></tr>`).join("")
+    || `<tr><td colspan="6">Nog geen enkele factor bruikbaar &mdash; niets om te volgen.</td></tr>`;
+  const stil = CV.reeksen.filter(r => r.staat === "stil").length;
+  document.getElementById("convNoot").innerHTML =
+    `<b>${stil}</b> van de ${CV.reeksen.length} reeksen staat stil: de laatste
+     peiling verschoof de factor minder dan ${(CV.drempel * 100).toFixed(0)}%.
+     Een reeks telt pas mee vanaf ${CV.min_peilingen} peilingen, en een dag
+     waarop een tijdvak geen nieuwe metingen kreeg telt niet als peiling &mdash;
+     anders lijkt stilstand convergentie.`;
+}
+
 /* De opslagfactoren uit de analyse, klein, naast de matrix */
 function vulOpslag(){
   const el = document.getElementById("opslagLijst");
@@ -818,7 +848,7 @@ function vulKalStand(){
 }
 
 function renderAll(){
-  vulKalStand(); vulAnalyses(); vulOpslag();
+  vulKalStand(); vulAnalyses(); vulOpslag(); vulConvergentie();
   vulLegend(); drawSched(); vulVoortgang();
   drawNdw(); vulDekking(); drawKal();
   drawDagprofiel(); vulPiek();
