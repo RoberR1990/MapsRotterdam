@@ -1,0 +1,14 @@
+[
+  {
+    "naam": "Wereldhavendagen 2026",
+    "bron": "https://wereldhavendagen.nl/ -- kades rond de Erasmusbrug, Wilhelminakade tot Boompjes/Parkkade",
+    "lat": 51.9075,
+    "lon": 4.4881,
+    "straal_m": 1200,
+    "vensters": [
+      ["2026-09-04T08:00:00+02:00", "2026-09-04T22:00:00+02:00"],
+      ["2026-09-05T08:00:00+02:00", "2026-09-06T01:00:00+02:00"],
+      ["2026-09-06T08:00:00+02:00", "2026-09-06T20:00:00+02:00"]
+    ]
+  }
+]

@@ -34,17 +34,19 @@ export NDW_BLACKOUTS="$WORK/blackouts/ndw_site_blackouts.json"
 export WEER_BESTAND="$WORK/weer/rotterdam.csv"
 export EVENEMENTEN_BESTAND="$WORK/evenementen/rotterdam.json"
 export MATRIX_DIR="$WORK/matrixborden"
+export INCIDENT_DIR="$WORK/incidenten"
 python3 src/sample_ndw.py collect
 
-# Covariaten: wat was er bijzonder aan dit moment? Alle drie goedkoop, dus
+# Covariaten: wat was er bijzonder aan dit moment? Alle vier goedkoop, dus
 # gewoon elke keer. Weer en evenementen zijn zelfherstellend (Open-Meteo levert
 # de afgelopen week opnieuw mee, het evenementenarchief groeit alleen maar aan);
-# de matrixborden zijn dat niet -- wat er een uur geleden boven de weg stond
-# staat nergens meer, dus een gemiste run is een gat. Een mislukking hier mag de
-# meting niet meeslepen: een uur zonder weerbericht is jammer, een uur zonder
-# meting is weg.
+# de matrixborden en het actuele beeld (incidenten) zijn dat niet -- wat er een
+# uur geleden boven de weg stond of op de weg gebeurde staat nergens meer, dus
+# een gemiste run is een gat. Een mislukking hier mag de meting niet meeslepen:
+# een uur zonder weerbericht is jammer, een uur zonder meting is weg.
 python3 src/weer.py || echo "weer overgeslagen" >&2
 python3 src/matrixborden.py collect || echo "matrixborden overgeslagen" >&2
+python3 src/incidenten.py collect || echo "incidenten overgeslagen" >&2
 if [ -f out/ndw_events_rotterdam.json ]; then
   python3 src/evenementen.py archiveer || echo "evenementen overgeslagen" >&2
 fi

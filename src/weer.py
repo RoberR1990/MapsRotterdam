@@ -34,9 +34,10 @@ TZ = ZoneInfo("Europe/Amsterdam")
 # Rotterdam centrum. Zie de docstring: één punt voor de hele stad.
 LAT, LON = 51.9225, 4.47917
 API = "https://api.open-meteo.com/v1/forecast"
-VELDEN = ["uur", "neerslag_mm", "wind_kmh", "windstoot_kmh", "temp_c", "zicht_m"]
+VELDEN = ["uur", "neerslag_mm", "wind_kmh", "windstoot_kmh", "temp_c", "zicht_m",
+          "sneeuw_cm", "is_dag"]
 METINGEN = ["precipitation", "wind_speed_10m", "wind_gusts_10m",
-            "temperature_2m", "visibility"]
+            "temperature_2m", "visibility", "snowfall", "is_day"]
 
 BESTAND = Path(os.environ.get("WEER_BESTAND") or OUT / "weer" / "rotterdam.csv")
 
@@ -60,11 +61,17 @@ def haal(dagen=7):
 
 
 def lees(pad=None):
+    """Uren uit een eerder weggeschreven bestand.
+
+    `.get(k, "")` in plaats van `r[k]`: na een schemawijziging (zoals het
+    toevoegen van sneeuw en dag/nacht) missen oudere regels de nieuwe kolom.
+    Leeg is dan het eerlijke antwoord -- onbekend, niet nul.
+    """
     pad = Path(pad or BESTAND)
     if not pad.exists():
         return {}
     with open(pad, newline="") as f:
-        return {r["uur"]: {k: r[k] for k in VELDEN[1:]}
+        return {r["uur"]: {k: r.get(k, "") for k in VELDEN[1:]}
                 for r in csv.DictReader(f)}
 
 
@@ -75,7 +82,7 @@ def schrijf(rijen, pad=None):
         w = csv.writer(f)
         w.writerow(VELDEN)
         for uur in sorted(rijen):
-            w.writerow([uur] + [rijen[uur][k] for k in VELDEN[1:]])
+            w.writerow([uur] + [rijen[uur].get(k, "") for k in VELDEN[1:]])
 
 
 def bij(rijen, moment):

@@ -94,6 +94,67 @@ VRAGEN = [
         "haak": "Vraagt een meetreeks die over een vakantie heen loopt. De eerste "
                 "kans is de herfstvakantie, 17-25 oktober.",
     },
+    {
+        "id": "incident",
+        "kenmerk": "incident",
+        "titel": "Verklaart een ongeval de rest van de uitschieters?",
+        "waarom": "De matrixborden verklaren alleen snelwegtrajecten. Een ongeval, "
+                  "pechgeval of los obstakel op een stadsweg heeft geen bord erboven "
+                  "en zou anders als structurele congestie in de matrix belanden.",
+        "methode": "Uit de NDW-feed `actueel_beeld`: stond er binnen 300 m van de "
+                   "meetlocatie een ongeval, pechgeval of obstakel geregistreerd?",
+        "haak": "Momentopname zonder geheugen -- een gemiste uurlijkse run laat een "
+                "gat vallen dat als 'geen incident' meetelt, niet als onbekend.",
+    },
+    {
+        "id": "brugopening",
+        "kenmerk": "brugopening",
+        "titel": "Wat kost een brugopening?",
+        "waarom": "Rotterdam heeft tientallen beweegbare bruggen in het autonet -- "
+                  "Van Brienenoord, Algerabrug, Koninginnebrug. Een zonepaar dat "
+                  "daarover loopt draagt een openingsrisico dat de rest niet heeft.",
+        "methode": "Zelfde bron als bij incidenten: `generalNetworkManagementType "
+                   "= bridgeSwingInOperation` binnen 500 m van de meetlocatie.",
+        "haak": "Alleen te zien zolang de brug daadwerkelijk openstaat op het "
+                "moment van meten -- een momentopname, dus schaars.",
+    },
+    {
+        "id": "grootevenement",
+        "kenmerk": "grootevenement",
+        "titel": "Wat doet een evenement zonder vergunningsrecord?",
+        "waarom": "Wereldhavendagen (4-6 september, kades rond de Erasmusbrug) "
+                  "staat niet in de NDW-planningsfeed -- die kent alleen wat een "
+                  "wegbeheerder zelf aanlevert. Zonder aparte lijst telt zo'n "
+                  "weekend gewoon als normaal weekend.",
+        "methode": "Handmatig bijgehouden gebied en venster (config/"
+                   "verstoringen_handmatig.json), verder identiek aan de "
+                   "NDW-evenementen: locatie binnen straal, moment binnen venster.",
+        "haak": "Zo goed als de lijst die erin staat. Voeg aanvullende evenementen "
+                "toe zodra ze bekend zijn -- dit is de plek voor gemeentelijke "
+                "kennis die geen enkele feed heeft.",
+    },
+    {
+        "id": "sneeuw",
+        "kenmerk": "sneeuw",
+        "titel": "Wat doet de eerste sneeuw?",
+        "waarom": "Sneeuw is zeldzamer dan regen maar het effect op de "
+                  "doorstroming is naar verwachting groter.",
+        "methode": "Zelfde opzet als bij regen: dezelfde locatie en tijdvak, wel "
+                   "of geen sneeuwval in dat uur volgens Open-Meteo.",
+        "haak": "September levert dit niet op. Pas bruikbaar zodra het najaar "
+                "de eerste sneeuw brengt.",
+    },
+    {
+        "id": "mist",
+        "kenmerk": "mist",
+        "titel": "Remt mist het verkeer af?",
+        "waarom": "Zicht onder 200 m is een klassieke reden voor snelheidsadviezen, "
+                  "vooral op de bruggen en langs de rivier.",
+        "methode": "Zelfde opzet: dezelfde locatie en tijdvak, zicht boven of "
+                   "onder de 200 m volgens Open-Meteo (die we al verzamelen).",
+        "haak": "Rotterdam-centrum is één meetpunt voor de hele regio -- lokale "
+                "mist boven het water kan hier gemist worden.",
+    },
 ]
 
 

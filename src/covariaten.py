@@ -32,6 +32,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evenementen as EV  # noqa: E402
+import handmatig as HM  # noqa: E402
+import incidenten as INC  # noqa: E402
 import kalender as KAL  # noqa: E402
 import matrixborden as MB  # noqa: E402
 import weer as WEER  # noqa: E402
@@ -44,6 +46,9 @@ OUT = ROOT / "out"
 # over het uur. 0,1 mm is een spat die niets doet met de doorstroming; vanaf een
 # halve millimeter zetten mensen de ruitenwissers aan en gaan ze langzamer rijden.
 NAT_MM = 0.5
+MIST_M = 200        # zichtafstand waaronder mensen zichtbaar afremmen
+INCIDENT_RADIUS_M = 300      # ongeval/pech/obstakel: een lokaal effect
+BRUG_RADIUS_M = 500          # brugopening: raakt het verkeer aan beide zijden
 # Wat is de steekproef? Niet het aantal meetpunten, maar het aantal MOMENTEN.
 # Duizend inductielussen tijdens dezelfde bui zijn duizend metingen van één bui:
 # ze zeggen samen niet meer over "wat doet regen" dan die ene bui. Op paren
@@ -52,13 +57,26 @@ MIN_MOMENTEN = 8
 MIN_PAREN = 30
 
 
+_metingen_cache = None
+
+
 def metingen():
     """Alle metingen als (moment, site, slot, snelheidsmaat), ontdubbeld.
 
     Beide feeds leveren iets dat met de snelheid meestijgt; voor reistijden is
     dat 1/duur. Alleen verhoudingen binnen één meetlocatie worden gebruikt, dus
     de eenheid doet er niet toe.
+
+    Gecachet in het geheugen: `effect()` roept dit voor elk kenmerk apart aan,
+    en met tien kenmerken in analyse.py betekent zonder cache tien keer de
+    hele geschiedenis van schijf lezen en uitpakken. De inhoud verandert niet
+    binnen één proces, dus na de eerste keer is het gewoon een lijst teruggeven.
     """
+    global _metingen_cache
+    if _metingen_cache is not None:
+        yield from _metingen_cache
+        return
+    uit = []
     gezien = set()
     for paden, waarde in ((sorted(HIST.glob("*.csv.gz")),
                            lambda r: float(r["speed_kmh"]) if int(r["n"]) > 0 else None),
@@ -77,13 +95,18 @@ def metingen():
                     slot = slot_of(dt)
                     v = waarde(r)
                     if slot and v is not None:
-                        yield dt, r["site_id"], slot, v
+                        rij = (dt, r["site_id"], slot, v)
+                        uit.append(rij)
+                        yield rij
+    _metingen_cache = uit
 
 
 def per_moment():
     """Eén rij per meetmoment, met de covariaten erbij."""
     w = WEER.lees()
     ev = EV.lees()
+    inc = INC.lees()
+    hm = HM.lees()
     tellen = defaultdict(int)
     for dt, _sid, slot, _v in metingen():
         tellen[(dt, slot)] += 1
@@ -93,6 +116,8 @@ def per_moment():
         kal = KAL.bij(dt.date())
         evn = EV.bij(ev, dt) if ev else {"evenementen": "", "evenement_dicht": ""}
         neerslag = weer_nu.get("neerslag_mm")
+        sneeuw = weer_nu.get("sneeuw_cm")
+        rijen_inc = inc.get(dt.isoformat(timespec="minutes"))
         rijen.append({
             "ts": dt.isoformat(timespec="minutes"),
             "slot": slot,
@@ -103,10 +128,16 @@ def per_moment():
             "wind_kmh": weer_nu.get("wind_kmh", ""),
             "windstoot_kmh": weer_nu.get("windstoot_kmh", ""),
             "zicht_m": weer_nu.get("zicht_m", ""),
+            "mist": ("" if not weer_nu.get("zicht_m")
+                     else int(float(weer_nu["zicht_m"]) < MIST_M)),
+            "sneeuw_cm": sneeuw if sneeuw not in (None, "") else "",
+            "is_dag": weer_nu.get("is_dag", ""),
             "temp_c": weer_nu.get("temp_c", ""),
             "vakantie": kal["vakantie"],
             "feestdag": kal["feestdag"],
             "schooldag": KAL.schooldagen_sinds_zomer(dt.date()) or "",
+            "incidenten": len(rijen_inc) if rijen_inc is not None else "",
+            "grootevenement": int(bool(HM.actief(hm, dt))) if hm else "",
             **evn,
         })
     return rijen
@@ -158,12 +189,36 @@ def plaatsen():
 
 
 _borden_cache = {}
+_incidenten_cache = {}
+_handmatig_cache = None
 
 
 def _borden():
     if not _borden_cache:
         _borden_cache.update(MB.lees() or {"": []})
     return _borden_cache
+
+
+def _incidenten():
+    if not _incidenten_cache:
+        _incidenten_cache.update(INC.lees() or {"": []})
+    return _incidenten_cache
+
+
+def _handmatig():
+    global _handmatig_cache
+    if _handmatig_cache is None:
+        _handmatig_cache = HM.lees()
+    return _handmatig_cache
+
+
+_evenementen_cache = {}
+
+
+def _evenementen_op(ev, dt):
+    if dt not in _evenementen_cache:
+        _evenementen_cache[dt] = EV.actief(ev, dt)
+    return _evenementen_cache[dt]
 
 
 def waar(kenmerk, dt, w, ev, plaats=None, site=None):
@@ -178,6 +233,12 @@ def waar(kenmerk, dt, w, ev, plaats=None, site=None):
     if kenmerk == "nat":
         n = (WEER.bij(w, dt) or {}).get("neerslag_mm")
         return None if n is None else float(n) >= NAT_MM
+    if kenmerk == "mist":
+        z = (WEER.bij(w, dt) or {}).get("zicht_m")
+        return None if not z else float(z) < MIST_M
+    if kenmerk == "sneeuw":
+        s = (WEER.bij(w, dt) or {}).get("sneeuw_cm")
+        return None if s in (None, "") else float(s) > 0
     if kenmerk == "vakantie":
         return bool(KAL.bij(dt.date())["vakantie"])
     if kenmerk == "feestdag":
@@ -187,8 +248,23 @@ def waar(kenmerk, dt, w, ev, plaats=None, site=None):
             return None
         if plaats is None:
             return None          # zonder coordinaat geen uitspraak
-        dicht = EV.dichtstbij(ev, dt, *plaats)
-        return dicht is not None and dicht <= EV.SITE_RADIUS_M
+        # `EV.actief()` doorzoekt het hele archief; met 75 losse momenten op
+        # 175.000 metingen (2.300 sites per moment) is dat 2.300 keer hetzelfde
+        # werk overdoen. Één keer per moment cachen scheelt hier ruim twee
+        # minuten per run.
+        lopend = _evenementen_op(ev, dt)
+        if not lopend:
+            return False
+        dicht = min(EV.meters(*plaats, r["lat"], r["lon"]) for r in lopend)
+        return dicht <= EV.SITE_RADIUS_M
+    if kenmerk == "grootevenement":
+        # Handmatig bijgehouden lijst (config/verstoringen_handmatig.json):
+        # evenementen zonder vergunningsrecord in de NDW-feed, zoals
+        # Wereldhavendagen.
+        hm = _handmatig()
+        if not hm or plaats is None:
+            return None if plaats is None else False
+        return HM.binnen(hm, dt, *plaats)
     if kenmerk == "matrixbord":
         # Alleen te beantwoorden voor snelwegtrajecten met weg+hectometer in
         # hun id. Voor een inductielus in de stad blijft het onbekend, en dat
@@ -197,6 +273,19 @@ def waar(kenmerk, dt, w, ev, plaats=None, site=None):
         if borden is None or site is None:
             return None
         return MB.hindert_traject(borden, site)
+    if kenmerk in ("incident", "brugopening"):
+        # Ook plaatsgebonden: een ongeval aan de andere kant van de stad
+        # verklaart deze meting niet. Onbekend als er voor dit moment geen
+        # incidentensnapshot is (gemiste run), niet "geen incident".
+        rijen = _incidenten().get(dt.isoformat(timespec="minutes"))
+        if rijen is None or plaats is None:
+            return None
+        if kenmerk == "brugopening":
+            dicht = INC.dichtstbij(rijen, *plaats, soorten={"Brugopening"})
+            return dicht is not None and dicht <= BRUG_RADIUS_M
+        rijen = [r for r in rijen if r["soort"] != "Brugopening"]
+        dicht = INC.dichtstbij(rijen, *plaats)
+        return dicht is not None and dicht <= INCIDENT_RADIUS_M
     if kenmerk == "wind":
         s = (WEER.bij(w, dt) or {}).get("windstoot_kmh")
         return None if s is None else float(s) >= 60

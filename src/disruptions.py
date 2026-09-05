@@ -78,8 +78,10 @@ def meters(lat1, lon1, lat2, lon2):
 
 
 def cmd_blackouts():
+    import handmatig as HM
     rows = met_locatie(load(), max_dagen=MAX_VENSTER_DAGEN)
     sites = json.loads((OUT / "ndw_sites.json").read_text())
+    hm = HM.lees()
 
     # grofmazig raster zodat we niet elke locatie tegen elke maatregel houden
     cel = 0.004
@@ -87,7 +89,7 @@ def cmd_blackouts():
     for r in rows:
         grid.setdefault((round(r["lon"] / cel), round(r["lat"] / cel)), []).append(r)
 
-    black, geraakt = {}, 0
+    black, geraakt, hm_geraakt = {}, 0, 0
     for s in sites:
         gx, gy = round(s["lon"] / cel), round(s["lat"] / cel)
         vensters = []
@@ -96,13 +98,22 @@ def cmd_blackouts():
                 for r in grid.get((gx + dx, gy + dy), ()):
                     if meters(s["lat"], s["lon"], r["lat"], r["lon"]) <= SITE_RADIUS_M:
                         vensters.append([r["start"], r["eind"]])
+        # Handmatige verstoringen apart: elke regel heeft zijn eigen straal, en
+        # er zijn er te weinig om het raster hierboven voor nodig te hebben.
+        voor_deze_site = len(vensters)
+        for r in hm:
+            if meters(s["lat"], s["lon"], r["lat"], r["lon"]) <= r["straal_m"]:
+                vensters.extend([a, b] for a, b in r.get("vensters", []))
+        if len(vensters) > voor_deze_site:
+            hm_geraakt += 1
         if vensters:
             black[s["id"]] = vensters
             geraakt += 1
 
     (OUT / "ndw_site_blackouts.json").write_text(json.dumps(black, separators=(",", ":")))
     print(f"{len(rows)} kortlopende verstoringen (<= {MAX_VENSTER_DAGEN} dagen) "
-          f"met locatie -> {geraakt} van {len(sites)} meetlocaties hebben een venster")
+          f"met locatie + {len(hm)} handmatige -> {geraakt} van {len(sites)} "
+          f"meetlocaties hebben een venster ({hm_geraakt} daarvan via handmatig)")
     print(f"   mediaan aantal vensters per geraakte locatie: "
           f"{sorted(len(v) for v in black.values())[geraakt // 2] if geraakt else 0}")
     print("-> out/ndw_site_blackouts.json")
