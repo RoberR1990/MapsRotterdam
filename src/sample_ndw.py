@@ -70,6 +70,17 @@ HIST_TT = Path(os.environ.get("NDW_TT_DIR") or HIST.parent / "ndw_traveltime")
 
 # Welk tijdvak hoort bij een moment? (lokale Rotterdamse tijd)
 def slot_of(dt):
+    """Elke dag van de week wordt van 6 tot 23 uur gemeten, in dezelfde vijf
+    vaste banden (vroeg, ochtendspits, dal, avondspits, avond) -- dat gaf
+    eerst alleen maandag en vrijdag. Dinsdag t/m donderdag had smalle
+    spitsvensters (om schoudertijd niet in het spitsbeeld te laten lekken) en
+    het weekend alleen een blok tussen de middag; beide lieten grote delen van
+    de dag ongemeten. Nu krijgt élke dag zijn eigen reeks per band, zodat er
+    ook een dinsdagvroeg en een zondagavond is om te vergelijken -- alleen
+    maandag/vrijdag/werkdag/weekend blijven aparte reeksen (in plaats van
+    bijvoorbeeld alle vijf werkdagen samen), want dat is precies waar de
+    verschillen zitten die je zou willen zien.
+    """
     wd, h = dt.weekday(), dt.hour + dt.minute / 60
 
     # De vrije-doorstroomreferentie. Alle factoren delen hierdoor, dus dit is
@@ -79,41 +90,27 @@ def slot_of(dt):
     if 1 <= h < 5:
         return "nacht_referentie"
 
-    if wd >= 5:
-        return "weekend_middag" if 12 <= h < 17 else None
-
     if wd in (0, 4):
-        # Maandag en vrijdag wijken af van een doordeweekse di-do: de
-        # maandagochtend is rustiger, de vrijdagmiddag drukker. Ze krijgen eigen
-        # tijdvakken in plaats van dat ze het werkdagbeeld verdunnen -- uit
-        # aparte reeksen kun je later alsnog een gecombineerd ma-vr cijfer
-        # rekenen, andersom niet. Op deze dagen meten we de hele dag door, van
-        # 6 tot 23 uur, dus zonder de gaten die di-do wel heeft.
         dag = "maandag" if wd == 0 else "vrijdag"
-        if 6 <= h < 7.5:
-            return f"{dag}_vroeg"
-        if 7.5 <= h < 9:
-            return f"{dag}_ochtendspits"
-        if 9 <= h < 16:
-            return f"{dag}_dal"
-        if 16 <= h < 18.5:
-            return f"{dag}_avondspits"
-        if 18.5 <= h < 23:
-            return f"{dag}_avond"
-        return None
+    elif wd in (1, 2, 3):
+        dag = "werkdag"
+    else:
+        dag = "weekend"
+    # Het weekend behoudt de naam "middag" voor zijn dal-band (in plaats van
+    # "dal"): dat is de sleutel waaronder timeslots.py het al kalibreert, en
+    # oudere metingen onder die naam blijven zo meetellen.
+    mid = "middag" if dag == "weekend" else "dal"
 
-    # Dinsdag t/m donderdag: de smalle vensters blijven smal, anders verdunt
-    # schoudertijd het spitsbeeld.
-    if 7.5 <= h < 9.0:
-        return "werkdag_ochtendspits"
-    if 10 <= h < 15:
-        return "werkdag_dal"
+    if 6 <= h < 7.5:
+        return f"{dag}_vroeg"
+    if 7.5 <= h < 9:
+        return f"{dag}_ochtendspits"
+    if 9 <= h < 16:
+        return f"{dag}_{mid}"
     if 16 <= h < 18.5:
-        return "werkdag_avondspits"
-    if 20 <= h < 23:
-        # smalle referentievensters: dit tijdvak levert alleen de
-        # vrije-doorstroomreferentie, daar zijn drie uur per dag genoeg voor
-        return "werkdag_avond"
+        return f"{dag}_avondspits"
+    if 18.5 <= h < 23:
+        return f"{dag}_avond"
     return None
 
 
