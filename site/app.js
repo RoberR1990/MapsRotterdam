@@ -756,25 +756,81 @@ function toonPagina(naam, schuif){
 
 /* ================= analysepagina ================= */
 function pct(f){ return ((f - 1) * 100).toFixed(1).replace(".", ",").replace(/,0$/, ""); }
+const pctAbs = f => Math.abs((f - 1) * 100).toFixed(1).replace(".", ",").replace(/,0$/, "");
+
+/* Categorie-kleuren: vaste toewijzing, nooit hergebruikt tussen categorieën.
+   Bewust andere indices dan soortKleur (dagdelen) hierboven -- zelfde palet,
+   andere betekenis, en ze staan nooit op dezelfde pagina naast elkaar. */
+const CATEGORIE_KLEUR = { "Weer": 2, "Verkeer": 3, "Evenementen": 1, "Kalender": 5 };
+const rgba = (hex, a) => `rgba(${hex2rgb(hex).join(",")},${a})`;
+
+/* Sneller of langzamer is een status (goed/let op), geen identiteit -- vandaar
+   accent/warn hier in plaats van het categorische palet hierboven. */
+const richtingKleur = f => f >= 1 ? css("--warn") : css("--accent");
+
+function tagHtml(categorie){
+  const i = CATEGORIE_KLEUR[categorie];
+  if (i === undefined) return "";
+  const kl = catKleur(i);
+  return `<span class="tag" style="background:${rgba(kl, .14)};color:${kl}">${categorie}</span>`;
+}
+
+/* p25-p75 op een vaste schaal (0,5x-2,0x), zodat kaarten onderling vergelijkbaar
+   zijn: een balk die van de linkerkant naar de rechterkant loopt is een grotere
+   impact dan een balk die nauwelijks van de middenlijn afwijkt, ongeacht welke
+   analyse het is. */
+const BEREIK_MIN = 0.5, BEREIK_MAX = 2.0;
+function bereikSvg(a){
+  const w = 600, h = 58, pad = 34;
+  const x = v => pad + (Math.min(BEREIK_MAX, Math.max(BEREIK_MIN, v)) - BEREIK_MIN)
+                 / (BEREIK_MAX - BEREIK_MIN) * (w - pad * 2);
+  const kl = richtingKleur(a.factor);
+  const ticks = [0.5, 1.0, 1.5, 2.0];
+  const tickLabel = t => t === 1 ? "normaal" : (t < 1 ? "−" : "+") +
+    Math.round(Math.abs(t - 1) * 100) + "%";
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img"
+      aria-label="Spreiding: kwart van de metingen onder ${a.p25.toFixed(2)}, kwart boven ${a.p75.toFixed(2)}, mediaan ${a.factor.toFixed(2)}">
+    <line class="as" x1="${pad}" y1="34" x2="${w - pad}" y2="34"/>
+    ${ticks.map(t => `<line class="${t === 1 ? "basis" : "as"}" x1="${x(t)}" y1="28" x2="${x(t)}" y2="40"/>
+      <text class="aslabel" x="${x(t)}" y="${h - 2}" text-anchor="middle">${tickLabel(t)}</text>`).join("")}
+    <rect class="band" x="${x(a.p25)}" y="28" width="${Math.max(2, x(a.p75) - x(a.p25))}" height="12" rx="3"/>
+    <line x1="${x(a.factor)}" y1="20" x2="${x(a.factor)}" y2="48" stroke="${kl}" stroke-width="3" stroke-linecap="round"/>
+    <text class="waardelabel" x="${x(a.factor)}" y="14" text-anchor="middle">&times;${a.factor.toFixed(2).replace(".", ",")}</text>
+  </svg>`;
+}
+
+/* Voortgang naar een eerste uitkomst: twee opeenvolgende drempels (eerst genoeg
+   momenten, dan genoeg paren) -- toon welke van de twee nu de beperkende is,
+   dezelfde telling die ook al in de tekst staat. */
+function wachtVoortgang(a){
+  const gate = a.momenten_met < a.min_momenten
+    ? { label: "momenten", n: a.momenten_met, doel: a.min_momenten }
+    : { label: "paren", n: a.paren, doel: a.min_paren };
+  const fr = Math.min(1, gate.n / gate.doel);
+  return `<div class="wacht-voortgang">
+    <div class="lab"><span>${gate.label} verzameld</span><span><b>${gate.n}</b> / ${gate.doel}</span></div>
+    <div class="track"><div class="fill" style="width:${(fr * 100).toFixed(0)}%"></div></div>
+  </div>`;
+}
 
 function vulAnalyses(){
   const el = document.getElementById("analyses");
   if (!el || !A) return;
   el.innerHTML = A.analyses.map(a => {
     const klaar = a.staat !== "wacht";
-    const kop = `<span class="staat ${klaar ? "uit" : "wacht"}">${a.staat}</span>`;
+    const kop = `<div class="tags">${tagHtml(a.categorie)}
+        <span class="staat ${klaar ? "uit" : "wacht"}">${a.staat}</span></div>`;
     const uit = klaar
-      ? `<div class="uitkomst">
-           <span class="groot">&times;${a.factor.toFixed(3).replace(".", ",")}</span>
-           <span class="bij">${a.factor >= 1 ? "+" : ""}${pct(a.factor)}% reistijd &middot;
-             p25 ${a.p25.toFixed(2).replace(".", ",")} &middot;
-             p75 ${a.p75.toFixed(2).replace(".", ",")} &middot;
-             ${a.momenten_met} momenten, ${a.paren} paren</span>
+      ? `<p class="kort">Rijden ${a.kort} kost gemiddeld
+           <b style="color:${richtingKleur(a.factor)}">${pctAbs(a.factor)}% ${a.factor >= 1 ? "langer" : "korter"}</b>.</p>
+         <div class="bereik">${bereikSvg(a)}</div>
+         <div class="uitkomst">
+           <span class="bij">${a.momenten_met} momenten, ${a.paren} vergelijkingsparen &middot;
+             band = kwart tot driekwart van de waarnemingen</span>
          </div>`
-      : `<div class="uitkomst">
-           <span class="bij">Nog geen uitspraak &mdash; ${a.stand}.
-           De steekproef is het aantal momenten, niet het aantal meetpunten.</span>
-         </div>`;
+      : `${wachtVoortgang(a)}
+         <p class="viz-note" style="margin:8px 0 0">Nog geen uitspraak &mdash; ${a.stand}.
+         De steekproef is het aantal momenten, niet het aantal meetpunten.</p>`;
     return `<article class="analyse">
       <header><h3>${a.titel}</h3>${kop}</header>
       <dl class="rijen">
@@ -789,20 +845,83 @@ function vulAnalyses(){
   document.getElementById("analyseNoot").textContent =
     `${klaar} van de ${A.analyses.length} analyses heeft een eerste uitkomst. ` +
     `Bijgewerkt ${A.gegenereerd.replace("T", " om ").slice(0, 19)}.`;
+  vulOverzicht();
+}
+
+/* Alle klare uitkomsten op één rij, gesorteerd op impact -- zodat in één oogopslag
+   duidelijk is welke van de tien analyses er echt toe doet en welke dicht bij
+   neutraal blijft. */
+function vulOverzicht(){
+  const el = document.getElementById("overzicht");
+  const noot = document.getElementById("overzichtNoot");
+  if (!el || !A) return;
+  const klaar = A.analyses.filter(a => a.staat !== "wacht")
+    .sort((x, y) => Math.abs(y.factor - 1) - Math.abs(x.factor - 1));
+  if (!klaar.length){
+    el.innerHTML = "";
+    noot.textContent = "";
+    return;
+  }
+  const grens = Math.max(10, Math.ceil(Math.max(...klaar.map(a =>
+    Math.abs((a.factor - 1) * 100))) / 5) * 5);
+  el.innerHTML = klaar.map(a => {
+    const p = (a.factor - 1) * 100;
+    const w = Math.min(50, Math.abs(p) / grens * 50);
+    const kl = richtingKleur(a.factor);
+    const kant = p >= 0 ? `left:50%; width:${w}%` : `right:50%; width:${w}%`;
+    return `<div class="rij">
+      <div class="naam"><span class="stip" title="${a.categorie}" style="background:${catKleur(CATEGORIE_KLEUR[a.categorie])}"></span>
+        <span title="${a.titel}">${a.id[0].toUpperCase() + a.id.slice(1)}</span></div>
+      <div class="balkas"><div class="middellijn"></div>
+        <div class="balk" style="${kant}; background:${kl}"></div></div>
+      <div class="getal" style="color:${kl}">${p >= 0 ? "+" : "−"}${pctAbs(a.factor)}%</div>
+    </div>`;
+  }).join("");
+  noot.innerHTML = `Impact in één oogopslag, gesorteerd op grootte.
+    <span style="color:${css("--warn")}">Amber</span> kost reistijd,
+    <span style="color:${css("--accent")}">groen</span> scheelt reistijd.
+    Schaal &plusmn;${grens}%.`;
 }
 
 /* ================= convergentie ================= */
+/* De laatste stap als balkje in de cel zelf (achtergrond-gradient, geen extra
+   markup): groen tot de drempel, amber erna -- dat IS immers de toets die
+   "stil" bepaalt. Totaal verschoven krijgt bewust geen groen/amber: een grote
+   totale verschuiving is verwacht en geen probleem, alleen de laatste stap zegt
+   iets over convergentie. */
+function stapCel(x, drempelFractie){
+  if (x === null) return { tekst: "&mdash;", stijl: "" };
+  const kl = Math.abs(x) < drempelFractie ? css("--accent") : css("--warn");
+  const w = Math.min(100, Math.abs(x) / (drempelFractie * 4) * 100);
+  const tekst = (x * 100).toFixed(1).replace(".", ",") + "%";
+  return { tekst, stijl: `background:linear-gradient(to right,${rgba(kl, .16)} 0 ${w}%,transparent ${w}% 100%)` };
+}
+function totaalCel(x, drempelFractie){
+  if (x === null) return { tekst: "&mdash;", stijl: "" };
+  const w = Math.min(100, Math.abs(x) / (drempelFractie * 8) * 100);
+  const tekst = (x * 100).toFixed(1).replace(".", ",") + "%";
+  return { tekst, stijl: `background:linear-gradient(to right,${rgba(css("--ink-3"), .13)} 0 ${w}%,transparent ${w}% 100%)` };
+}
+
 function vulConvergentie(){
   const tb = document.querySelector("#convTabel tbody");
   if (!tb || !CV) return;
-  const pct = x => x === null ? "&mdash;" : (x * 100).toFixed(1).replace(".", ",") + "%";
-  tb.innerHTML = CV.reeksen.map(r => `<tr>
-    <td>${r.klasse}</td>
-    <td class="mono">${r.slot.replace(/_/g, " ")}</td>
-    <td class="num">${r.peilingen}</td>
-    <td class="num">${pct(r.laatste_stap)}</td>
-    <td class="num">${pct(r.totale_beweging)}</td>
-    <td>${r.staat}</td></tr>`).join("")
+  tb.innerHTML = CV.reeksen.map(r => {
+    const stap = stapCel(r.laatste_stap, CV.drempel);
+    const totaal = totaalCel(r.totale_beweging, CV.drempel);
+    const stil = r.staat === "stil";
+    const chip = r.staat === "te kort"
+      ? `<span class="staat wacht">te kort</span>`
+      : `<span class="staat" style="background:${rgba(stil ? css("--accent") : css("--warn"), .14)};
+           color:${stil ? css("--accent") : css("--warn")}">${r.staat}</span>`;
+    return `<tr>
+      <td>${r.klasse}</td>
+      <td class="mono">${r.slot.replace(/_/g, " ")}</td>
+      <td class="num">${r.peilingen}</td>
+      <td class="num" style="${stap.stijl}">${stap.tekst}</td>
+      <td class="num" style="${totaal.stijl}">${totaal.tekst}</td>
+      <td>${chip}</td></tr>`;
+  }).join("")
     || `<tr><td colspan="6">Nog geen enkele factor bruikbaar &mdash; niets om te volgen.</td></tr>`;
   const stil = CV.reeksen.filter(r => r.staat === "stil").length;
   document.getElementById("convNoot").innerHTML =

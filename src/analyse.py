@@ -32,6 +32,8 @@ VRAGEN = [
     {
         "id": "nat",
         "kenmerk": "nat",
+        "categorie": "Weer",
+        "kort": "tijdens neerslag (≥0,5 mm/uur)",
         "titel": "Hoeveel kost regen aan reistijd?",
         "waarom": "Regende het toevallig tijdens de spitsen die we gemeten hebben, "
                   "dan zit dat permanent in de matrix. En andersom: op een natte dag "
@@ -45,6 +47,8 @@ VRAGEN = [
     {
         "id": "evenement",
         "kenmerk": "evenement",
+        "categorie": "Evenementen",
+        "kort": "binnen 500 m van een gemeld evenement",
         "titel": "Wat doet een evenement met de omgeving?",
         "waarom": "Rotterdam heeft veel evenementen met wegafsluitingen. Als die in "
                   "de meetweek vallen kleuren ze het tijdvak, terwijl ze geen "
@@ -59,6 +63,8 @@ VRAGEN = [
     {
         "id": "matrixbord",
         "kenmerk": "matrixbord",
+        "categorie": "Verkeer",
+        "kort": "onder een matrixbord met hinder",
         "titel": "Verklaren de matrixborden de uitschieters op de snelweg?",
         "waarom": "Een snelwegtraject dat ineens drie keer zo lang doet is meestal "
                   "geen structurele congestie maar een afgekruiste rijstrook. Die "
@@ -73,6 +79,8 @@ VRAGEN = [
     {
         "id": "wind",
         "kenmerk": "wind",
+        "categorie": "Weer",
+        "kort": "tijdens windstoten ≥60 km/u",
         "titel": "Doet harde wind iets?",
         "waarom": "Op de bruggen en de Van Brienenoord is windhinder een reden voor "
                   "snelheidsbeperking. De vraag is of het in het stadsbeeld terug te "
@@ -85,6 +93,8 @@ VRAGEN = [
     {
         "id": "vakantie",
         "kenmerk": "vakantie",
+        "categorie": "Kalender",
+        "kort": "in een schoolvakantie",
         "titel": "Hoeveel rustiger is een schoolvakantie?",
         "waarom": "De zomervakantie in regio Midden liep tot en met 30 augustus. "
                   "Onze eerste meetweek is dus de eerste schoolweek -- geen normale "
@@ -97,6 +107,8 @@ VRAGEN = [
     {
         "id": "incident",
         "kenmerk": "incident",
+        "categorie": "Verkeer",
+        "kort": "binnen 300 m van een ongeval, pechgeval of obstakel",
         "titel": "Verklaart een ongeval de rest van de uitschieters?",
         "waarom": "De matrixborden verklaren alleen snelwegtrajecten. Een ongeval, "
                   "pechgeval of los obstakel op een stadsweg heeft geen bord erboven "
@@ -109,6 +121,8 @@ VRAGEN = [
     {
         "id": "brugopening",
         "kenmerk": "brugopening",
+        "categorie": "Verkeer",
+        "kort": "terwijl een brug binnen 500 m openstaat",
         "titel": "Wat kost een brugopening?",
         "waarom": "Rotterdam heeft tientallen beweegbare bruggen in het autonet -- "
                   "Van Brienenoord, Algerabrug, Koninginnebrug. Een zonepaar dat "
@@ -121,6 +135,8 @@ VRAGEN = [
     {
         "id": "grootevenement",
         "kenmerk": "grootevenement",
+        "categorie": "Evenementen",
+        "kort": "tijdens een handmatig geregistreerd groot evenement",
         "titel": "Wat doet een evenement zonder vergunningsrecord?",
         "waarom": "Wereldhavendagen (4-6 september, kades rond de Erasmusbrug) "
                   "staat niet in de NDW-planningsfeed -- die kent alleen wat een "
@@ -136,6 +152,8 @@ VRAGEN = [
     {
         "id": "sneeuw",
         "kenmerk": "sneeuw",
+        "categorie": "Weer",
+        "kort": "bij sneeuwval",
         "titel": "Wat doet de eerste sneeuw?",
         "waarom": "Sneeuw is zeldzamer dan regen maar het effect op de "
                   "doorstroming is naar verwachting groter.",
@@ -147,6 +165,8 @@ VRAGEN = [
     {
         "id": "mist",
         "kenmerk": "mist",
+        "categorie": "Weer",
+        "kort": "bij zicht onder 200 m",
         "titel": "Remt mist het verkeer af?",
         "waarom": "Zicht onder 200 m is een klassieke reden voor snelheidsadviezen, "
                   "vooral op de bruggen en langs de rivier.",
@@ -162,7 +182,8 @@ def stand(kenmerk):
     """De uitkomst van één analyse, of waarom hij er nog niet is."""
     ratios, per_klasse, m_met, m_zonder = COV.effect(kenmerk)
     uit = {"momenten_met": len(m_met), "momenten_zonder": len(m_zonder),
-           "paren": len(ratios), "min_momenten": COV.MIN_MOMENTEN}
+           "paren": len(ratios), "min_momenten": COV.MIN_MOMENTEN,
+           "min_paren": COV.MIN_PAREN}
     if min(len(m_met), len(m_zonder)) < COV.MIN_MOMENTEN:
         uit["staat"] = "wacht"
         uit["stand"] = (f"{len(m_met)} van de {COV.MIN_MOMENTEN} benodigde momenten"
@@ -189,7 +210,8 @@ def main():
     for v in VRAGEN:
         s = stand(v["kenmerk"])
         rijen.append({**{k: v[k] for k in
-                         ("id", "titel", "waarom", "methode", "haak")}, **s})
+                         ("id", "titel", "categorie", "kort", "waarom", "methode",
+                          "haak")}, **s})
     data = {
         "gegenereerd": datetime.now(TZ).isoformat(timespec="minutes"),
         "min_dagen": MIN_DAGEN,
