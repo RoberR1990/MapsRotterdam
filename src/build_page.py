@@ -15,10 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 OUT = ROOT / "out"
-DOEL = Path(os.environ.get("PAGE_OUT") or
-            "/tmp/claude-0/-home-user-MapsRotterdam/"
-            "a1e0fc08-33ff-55b5-9add-532e3474ee62/scratchpad/"
-            "rotterdam-reistijdmatrix.html")
+DOEL = Path(os.environ.get("PAGE_OUT") or (OUT / "rotterdam-reistijdmatrix.html"))
 
 GEGEVENS = {
     "__DATA__": "matrix_web_parkzones.json",
