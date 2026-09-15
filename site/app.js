@@ -983,4 +983,52 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll)
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderAll, 150); });
 new MutationObserver(renderAll).observe(document.documentElement,
   {attributes:true, attributeFilter:["data-theme"]});
+
+/* ================= export van de onderliggende data ================= */
+/* Eén csv met de volledige matrix (alle zoneparen, alle tijdvakken), zodat
+   collega's zonder deze pagina open te houden verder kunnen in Excel. */
+function bouwExportCsv(){
+  const kop = ["van_id","van_naam","van_gebied","naar_id","naar_naam","naar_gebied",
+    "afstand_km", ...SLOTS.map(s => s.label.replace(/\s*\(.*/, "") + " (min)")];
+  const regels = [kop.join(";")];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++){
+    const k = i*N + j;
+    const rij = [Z[i].id, Z[i].naam, Z[i].gebied, Z[j].id, Z[j].naam, Z[j].gebied,
+      (D.meters[k]/1000).toFixed(2),
+      ...SLOTS.map(s => (D.m[s.key][k]/60).toFixed(1))];
+    regels.push(rij.map(v => /[;"\n]/.test(v) ? `"${String(v).replace(/"/g,'""')}"` : v).join(";"));
+  }
+  return regels.join("\n");
+}
+
+(async function initExport(){
+  const btn = document.getElementById("exportBtn");
+  const melding = document.getElementById("exportMelding");
+  const downloads = await claude.use("downloads");
+  if (!downloads){ btn.disabled = true; btn.title = "Exporteren is hier niet beschikbaar"; return; }
+  let bezig = false;
+  btn.onclick = async () => {
+    if (bezig) return;
+    bezig = true; btn.disabled = true;
+    try{
+      const csv = bouwExportCsv();
+      const vandaag = new Date().toISOString().slice(0,10);
+      const r = await downloads.save({
+        filename: `rotterdam-reistijdmatrix-${vandaag}.csv`,
+        data: new Blob([csv], {type: "text/csv"}),
+      });
+      melding.textContent = r.status === "saved" ? "Bestand opgeslagen" : "Bestand verstuurd";
+      melding.classList.add("aan");
+      setTimeout(() => melding.classList.remove("aan"), 2600);
+    }catch(e){
+      if (e && e.code !== "declined"){
+        melding.textContent = "Exporteren is niet gelukt";
+        melding.classList.add("aan");
+        setTimeout(() => melding.classList.remove("aan"), 2600);
+      }
+    }finally{
+      bezig = false; btn.disabled = false;
+    }
+  };
+})();
 </script>
