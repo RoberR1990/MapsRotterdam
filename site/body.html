@@ -630,17 +630,43 @@
 </section>
 
 <section>
+  <h2>Wat staat in GitHub, en wat niet</h2>
+  <p class="sub">Eén repo, maar niet alles zit op dezelfde plek &mdash; en
+  niet alles zit er &uacute;berhaupt in.</p>
+  <ul class="ledger">
+    <li><span class="n">Alle code</span><span class="tag ok">branch main</span>
+      <span class="d">Elk script, <code>site/</code>, de configuratie. Op twee
+      afgeleide bestanden in <code>out/</code> na zit hier geen gegenereerde
+      data.</span></li>
+    <li><span class="n">NDW-metingen (ruw)</span><span class="tag ok">branch ndw-data</span>
+      <span class="d">Wel in GitHub, maar op een losse orphan branch:
+      <code>ndw_history</code>, <code>ndw_traveltime</code>, <code>weer</code>,
+      <code>matrixborden</code>, <code>incidenten</code>, <code>evenementen</code>,
+      <code>blackouts</code>. Hier pusht <code>collect_standalone.sh</code> elk
+      uur naartoe, en hier haalt de dagelijkse pagina-build het weer op.</span></li>
+    <li><span class="n">OSM-uitsnede &amp; OSRM-grafen</span><span class="tag todo">niet in git</span>
+      <span class="d"><code>data/</code> (de <code>.osm.pbf</code> en alle
+      gebouwde <code>.osrm</code>-bestanden) en de per-tijdvak
+      <code>profiles/</code>-mappen staan in <code>.gitignore</code> &mdash;
+      bewust, want dat zijn honderden MB's binaire, herbouwbare bestanden.
+      Alleen het bouwscript <code>src/osrm_build.sh</code> zit in git.</span></li>
+  </ul>
+</section>
+
+<section>
   <h2>Om dit in een eigen omgeving te zetten</h2>
   <ol style="padding-left:22px">
-    <li style="margin-bottom:8px">Kloon de repository; alle code, geen
-    gegenereerde data zit in git (<code>out/</code> op twee bestanden na, en
-    <code>ndw-data</code> zelf, zijn opzettelijk niet meegecommit).</li>
-    <li style="margin-bottom:8px">Zet een OSRM-instantie op met
-    <code>src/osrm_build.sh</code> &mdash; vereist een lokale OSM-uitsnede
-    (BBBike of vergelijkbaar) en Docker.</li>
-    <li style="margin-bottom:8px">Regel een orphan branch zoals
-    <code>ndw-data</code> om de ruwe metingen in op te slaan; het collect-script
-    verwacht die naam maar kan omgezet worden.</li>
+    <li style="margin-bottom:8px">Kloon de repository; dat geeft alle code en,
+    via <code>git fetch origin ndw-data</code>, ook de tot nu toe verzamelde
+    metingen.</li>
+    <li style="margin-bottom:8px">Download zelf een OSM-uitsnede van Rotterdam
+    (bijv. via BBBike) naar <code>data/osm/Rotterdam.osm.pbf</code>, en draai
+    <code>src/osrm_build.sh</code> &mdash; vereist Docker &mdash; om de
+    OSRM-grafen te bouwen. Dit staat niet in git en moet lokaal.</li>
+    <li style="margin-bottom:8px">Wil je onder een andere naam of in een eigen
+    repo verder verzamelen: regel een orphan branch zoals <code>ndw-data</code>
+    om de ruwe metingen in op te slaan; het collect-script verwacht die naam
+    maar kan omgezet worden.</li>
     <li style="margin-bottom:8px">Plan <code>collect_standalone.sh</code> elk uur
     en de bouw-pijplijn dagelijks &mdash; via cron, een scheduler-service, of
     Claude Code Remote-routines zoals hier.</li>
