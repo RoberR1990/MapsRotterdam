@@ -725,6 +725,7 @@ const PAGINAS = [
   ["kalibratie", "Kalibratie"],
   ["methode",    "Methode"],
   ["bronnen",    "Bronnen"],
+  ["overdracht", "Overdracht"],
 ];
 const A = __ANALYSE__;
 const CV = __CONVERGENTIE__;

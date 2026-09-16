@@ -566,6 +566,108 @@
 </div>
 </div>
 
+<div class="pagina" id="pg-overdracht">
+<div class="paginakop">
+  <h2>Overdracht &mdash; dit zelf nabouwen</h2>
+  <p class="sub">Voor een collega die de logica wil nalezen en binnen de eigen
+  werkomgeving wil namaken. Alles hieronder staat ook, met meer detail, in de
+  tabbladen Methode en Bronnen &mdash; dit is de routekaart erdoorheen.</p>
+</div>
+
+<section>
+  <h2>De pijplijn in het kort</h2>
+  <p class="sub">Zeven stappen, elk een los script, elk met een eigen
+  bestand als uitkomst. Geen stap heeft meer nodig dan de uitvoer van de
+  vorige.</p>
+  <ul class="ledger">
+    <li><span class="n">1. Zones</span><span class="tag ok">eenmalig</span>
+      <span class="d"><code>src/zones.py</code> &mdash; RDW Nationaal Parkeer
+      Register naar 99 parkeerzones met representatiepunten.</span></li>
+    <li><span class="n">2. Wegennet</span><span class="tag ok">eenmalig, ververs af en toe</span>
+      <span class="d"><code>src/osrm_build.sh</code> &mdash; OSM-uitsnede naar een
+      draaiende OSRM-router; nodig voor elke matrixberekening.</span></li>
+    <li><span class="n">3. Verkeer verzamelen</span><span class="tag ok">doorlopend</span>
+      <span class="d"><code>src/collect_standalone.sh</code> &mdash; haalt de NDW-feeds
+      op en pusht ruwe CSV/JSON naar de orphan branch <code>ndw-data</code>. Roept
+      zelf <code>sample_ndw.py collect</code>, <code>weer.py</code>,
+      <code>matrixborden.py</code> en <code>incidenten.py</code> aan.</span></li>
+    <li><span class="n">4. Congestiefactoren</span><span class="tag todo">nog plaatshouders</span>
+      <span class="d"><code>src/sample_ndw.py aggregate</code> &mdash; zet ruwe
+      metingen om in een factor per wegklasse en tijdvak. Voedt
+      <code>src/timeslots.py</code>, dat nu nog schattingen bevat, geen metingen.</span></li>
+    <li><span class="n">5. Matrix bouwen</span><span class="tag ok">2 sec per tijdvak</span>
+      <span class="d"><code>src/build_matrices.py</code> / <code>build_slots.py</code>
+      &mdash; laat OSRM alle 9.801 zoneparen per tijdvak berekenen, met de
+      congestiefactoren als wegsnelheden.</span></li>
+    <li><span class="n">6. Analyse &amp; convergentie</span><span class="tag ok">dagelijks</span>
+      <span class="d"><code>src/progress.py</code>, <code>analyse.py</code>,
+      <code>convergentie.py</code> &mdash; tellen hoeveel gemeten is en of de
+      factoren al stabiel staan.</span></li>
+    <li><span class="n">7. Pagina bouwen &amp; publiceren</span><span class="tag ok">dagelijks</span>
+      <span class="d"><code>src/build_page.py</code> plakt <code>site/head.html</code>,
+      <code>site/body.html</code> en <code>site/app.js</code> met de laatste
+      <code>out/*.json</code>-bestanden aan elkaar tot deze pagina, standaard naar
+      <code>out/rotterdam-reistijdmatrix.html</code>.</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Wat er draait, en hoe vaak</h2>
+  <p class="sub">In deze omgeving lopen drie geplande taken, elk een los
+  bash- of python-commando. Een geplande GitHub Actions-workflow bleek niet
+  betrouwbaar te vuren (zie Methode) &mdash; vervang dit dus liefst door een
+  cron-job of scheduler die je zelf kunt zien draaien, niet door Actions.</p>
+  <ul class="ledger">
+    <li><span class="n">NDW-meting, overdag</span><span class="tag ok">elk uur, 6&ndash;23u</span>
+      <span class="d"><code>bash src/collect_standalone.sh</code></span></li>
+    <li><span class="n">NDW-meting, 's nachts</span><span class="tag ok">elk uur, 23&ndash;6u</span>
+      <span class="d">Zelfde commando &mdash; de nachtwaarden dienen als
+      vrije-doorstroomreferentie.</span></li>
+    <li><span class="n">Pagina verversen</span><span class="tag ok">1&times; per dag</span>
+      <span class="d">Stap 6 en 7 hierboven, gevolgd door publicatie van
+      <code>out/rotterdam-reistijdmatrix.html</code>.</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Om dit in een eigen omgeving te zetten</h2>
+  <ol style="padding-left:22px">
+    <li style="margin-bottom:8px">Kloon de repository; alle code, geen
+    gegenereerde data zit in git (<code>out/</code> op twee bestanden na, en
+    <code>ndw-data</code> zelf, zijn opzettelijk niet meegecommit).</li>
+    <li style="margin-bottom:8px">Zet een OSRM-instantie op met
+    <code>src/osrm_build.sh</code> &mdash; vereist een lokale OSM-uitsnede
+    (BBBike of vergelijkbaar) en Docker.</li>
+    <li style="margin-bottom:8px">Regel een orphan branch zoals
+    <code>ndw-data</code> om de ruwe metingen in op te slaan; het collect-script
+    verwacht die naam maar kan omgezet worden.</li>
+    <li style="margin-bottom:8px">Plan <code>collect_standalone.sh</code> elk uur
+    en de bouw-pijplijn dagelijks &mdash; via cron, een scheduler-service, of
+    Claude Code Remote-routines zoals hier.</li>
+    <li>Publiceer <code>out/rotterdam-reistijdmatrix.html</code> waar dat past
+    binnen de eigen werkomgeving; het is een op zichzelf staand HTML-bestand
+    zonder server nodig.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Waar nog aan gewerkt moet worden</h2>
+  <ul class="ledger">
+    <li><span class="n">Kalibratie</span><span class="tag todo">loopt</span>
+      <span class="d">De congestiefactoren in <code>src/timeslots.py</code> zijn
+      schattingen. Zie het tabblad Kalibratie voor de actuele dekking per
+      tijdvak.</span></li>
+    <li><span class="n">Onafhankelijke validatie</span><span class="tag todo">nog niet gestart</span>
+      <span class="d">Geen controle tegen een bron los van NDW (een
+      routedienst met verkeersinformatie, of eigen ritgegevens). De matrix is
+      intern consistent, niet extern geverifieerd.</span></li>
+    <li><span class="n">Meetdekking weekend/maandag/vrijdag</span><span class="tag todo">te kort</span>
+      <span class="d">Sommige tijdvakken hebben nog geen drie losse dagen
+      gemeten; zie het tabblad Voortgang.</span></li>
+  </ul>
+</section>
+</div>
+
 </main>
 
 <footer>
