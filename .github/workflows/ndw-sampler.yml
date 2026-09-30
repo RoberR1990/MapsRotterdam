@@ -15,8 +15,9 @@ name: NDW-snelheden verzamelen
 # in de repo. Duurt het verzamelen langer, duw dan af en toe een commit.
 
 on:
-  schedule:
-    - cron: '7,37 * * * *'
+  # Cron-trigger stopgezet op 30 september 2026 op verzoek van de opdrachtgever
+  # -- er is genoeg data verzameld. Handmatig draaien kan nog altijd via
+  # workflow_dispatch.
   workflow_dispatch:
 
 permissions:

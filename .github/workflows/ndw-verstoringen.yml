@@ -9,8 +9,9 @@ name: NDW-verstoringen verversen
 # dag.
 
 on:
-  schedule:
-    - cron: '20 3 * * *'
+  # Cron-trigger stopgezet op 30 september 2026 op verzoek van de opdrachtgever
+  # -- er is genoeg data verzameld. Handmatig draaien kan nog altijd via
+  # workflow_dispatch.
   workflow_dispatch:
 
 permissions:
